@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Контакты | ALBINA.DEV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="logo" href="index.html">ALBINA.DEV</a>
+      <nav class="main-nav">
+        <a href="index.html">Главная</a>
+        <a href="portfolio.html">Портфолио</a>
+        <a href="process.html">Ведение проекта</a>
+        <a href="contact.html" class="active">Контакты</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero compact">
+      <p class="eyebrow">Старт проекта</p>
+      <h1>Оставь бриф — свяжемся в течение 24 часов</h1>
+      <p class="lead">Выберем оптимальный формат, бюджет и сроки, а затем закрепим менеджера под твой проект.</p>
+    </section>
+
+    <section class="card-section">
+      <div class="contact-grid">
+        <form class="card contact-form">
+          <label>
+            Твоё имя
+            <input type="text" placeholder="Например, Альбина" required />
+          </label>
+          <label>
+            Контакт для связи
+            <input type="text" placeholder="Telegram, WhatsApp или email" required />
+          </label>
+          <label>
+            Тип задачи
+            <select>
+              <option>Лендинг</option>
+              <option>Многостраничный сайт</option>
+              <option>Интернет-магазин</option>
+              <option>Веб-приложение</option>
+            </select>
+          </label>
+          <label>
+            Коротко о проекте
+            <textarea rows="5" placeholder="Цели, сроки, примерный бюджет..."></textarea>
+          </label>
+          <button class="btn btn-primary" type="button">Отправить бриф</button>
+        </form>
+
+        <aside class="card contact-aside">
+          <h3>Контакты</h3>
+          <p><strong>Telegram:</strong> @albina_dev</p>
+          <p><strong>Email:</strong> hello@albina.dev</p>
+          <p><strong>Формат связи:</strong> online по всему миру</p>
+          <hr />
+          <h3>Что дальше</h3>
+          <p>1) Созвон 20-30 минут</p>
+          <p>2) Предварительная смета и roadmap</p>
+          <p>3) Старт работ и закрепление менеджера</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <p>© 2026 ALBINA.DEV — разработка digital-продуктов под ключ</p>
+      <div class="footer-links">
+        <a href="index.html">Главная</a>
+        <a href="portfolio.html">Кейсы</a>
+        <a href="process.html">Процесс</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

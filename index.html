@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Премиум-разработка | Персональные digital-решения</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="logo" href="index.html">ALBINA.DEV</a>
+      <nav class="main-nav">
+        <a href="index.html" class="active">Главная</a>
+        <a href="portfolio.html">Портфолио</a>
+        <a href="process.html">Ведение проекта</a>
+        <a href="contact.html">Контакты</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <p class="eyebrow">Премиум студийный подход для твоего бизнеса</p>
+      <h1>Разрабатываю сайты и веб-сервисы, которые продают и усиливают бренд</h1>
+      <p class="lead">
+        Многостраничные корпоративные сайты, лендинги, клиентские кабинеты и automation-инструменты.
+        В каждом проекте: продуманная структура, сильный визуал и прозрачный процесс.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="contact.html">Обсудить проект</a>
+        <a class="btn btn-ghost" href="portfolio.html">Смотреть кейсы</a>
+      </div>
+    </section>
+
+    <section class="container card-section">
+      <h2>Калькулятор стоимости и сроков</h2>
+      <p class="section-subtitle">Быстрая оценка типовых проектов до первого созвона.</p>
+      <div class="calculator-grid">
+        <form id="price-calculator" class="card">
+          <label>
+            Тип проекта
+            <select id="project-type">
+              <option value="landing">Лендинг (1-2 экрана)</option>
+              <option value="corporate">Многостраничный сайт</option>
+              <option value="ecommerce">Интернет-магазин</option>
+              <option value="webapp">Веб-приложение / кабинет</option>
+            </select>
+          </label>
+
+          <label>
+            Сложность дизайна
+            <select id="design-level">
+              <option value="basic">Базовый современный</option>
+              <option value="premium">Премиум UI</option>
+              <option value="luxury">Люксовый арт-дирекшн</option>
+            </select>
+          </label>
+
+          <label>
+            Количество уникальных страниц
+            <input id="pages-count" type="number" min="1" max="40" value="5" />
+          </label>
+
+          <label>
+            <input id="need-copy" type="checkbox" />
+            Нужен копирайтинг и структура текстов
+          </label>
+
+          <label>
+            <input id="need-anim" type="checkbox" />
+            Нужны анимации и интерактив
+          </label>
+
+          <button class="btn btn-primary" type="submit">Рассчитать</button>
+        </form>
+
+        <div class="card result-card">
+          <h3>Предварительная оценка</h3>
+          <p class="muted">Итог уточняется после брифа, но обычно попадает в этот диапазон.</p>
+          <div class="result-line">
+            <span>Стоимость</span>
+            <strong id="result-price">от 120 000 ₽</strong>
+          </div>
+          <div class="result-line">
+            <span>Срок реализации</span>
+            <strong id="result-time">3-4 недели</strong>
+          </div>
+          <a class="btn btn-ghost wide" href="contact.html">Зафиксировать оценку</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <p>© 2026 ALBINA.DEV — разработка digital-продуктов под ключ</p>
+      <div class="footer-links">
+        <a href="portfolio.html">Кейсы</a>
+        <a href="process.html">Процесс</a>
+        <a href="contact.html">Контакты</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

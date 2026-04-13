@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Портфолио | ALBINA.DEV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="logo" href="index.html">ALBINA.DEV</a>
+      <nav class="main-nav">
+        <a href="index.html">Главная</a>
+        <a href="portfolio.html" class="active">Портфолио</a>
+        <a href="process.html">Ведение проекта</a>
+        <a href="contact.html">Контакты</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero compact">
+      <p class="eyebrow">Интерактивное портфолио</p>
+      <h1>Кейсы с фильтрацией по направлениям</h1>
+      <p class="lead">Большая часть информации доступна сразу на сайте: задача, результат, сроки и стек.</p>
+    </section>
+
+    <section class="card-section">
+      <div class="portfolio-filters">
+        <button class="filter-btn active" data-filter="all">Все проекты</button>
+        <button class="filter-btn" data-filter="landing">Лендинги</button>
+        <button class="filter-btn" data-filter="corp">Корпоративные</button>
+        <button class="filter-btn" data-filter="shop">E-commerce</button>
+        <button class="filter-btn" data-filter="app">Веб-приложения</button>
+      </div>
+
+      <div id="portfolio-grid" class="portfolio-grid">
+        <article class="portfolio-card" data-category="landing">
+          <h3>Neon Fitness</h3>
+          <p class="tag">Лендинг • 2 недели</p>
+          <p>Премиальный лендинг фитнес-клуба с онлайн-записью и анимацией блоков.</p>
+          <p class="result">+41% заявок за первый месяц</p>
+        </article>
+
+        <article class="portfolio-card" data-category="corp">
+          <h3>Legal Prime</h3>
+          <p class="tag">Корпоративный сайт • 4 недели</p>
+          <p>12 уникальных страниц, блог, формы лидогенерации и сложная структура услуг.</p>
+          <p class="result">Время на сайте +63%</p>
+        </article>
+
+        <article class="portfolio-card" data-category="shop">
+          <h3>Maison Glow</h3>
+          <p class="tag">Интернет-магазин • 6 недель</p>
+          <p>Каталог на 400+ SKU, продвинутый поиск и быстрый checkout без лишних шагов.</p>
+          <p class="result">Конверсия в покупку +22%</p>
+        </article>
+
+        <article class="portfolio-card" data-category="app">
+          <h3>HR Core Desk</h3>
+          <p class="tag">Веб-приложение • 8 недель</p>
+          <p>Личный кабинет для HR-отдела с доступами по ролям и выгрузками отчётов.</p>
+          <p class="result">Автоматизировано 70% рутины</p>
+        </article>
+
+        <article class="portfolio-card" data-category="landing">
+          <h3>Estate Luxe</h3>
+          <p class="tag">Лендинг • 3 недели</p>
+          <p>Landing для элитной недвижимости с умной формой подбора объектов.</p>
+          <p class="result">CPL снизился на 29%</p>
+        </article>
+
+        <article class="portfolio-card" data-category="corp">
+          <h3>TechnoFlow Group</h3>
+          <p class="tag">Корпоративный сайт • 5 недель</p>
+          <p>Редизайн и реархитектура контента с акцентом на B2B-продажи.</p>
+          <p class="result">Входящих запросов +35%</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <p>© 2026 ALBINA.DEV — разработка digital-продуктов под ключ</p>
+      <div class="footer-links">
+        <a href="index.html">Главная</a>
+        <a href="process.html">Процесс</a>
+        <a href="contact.html">Контакты</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
