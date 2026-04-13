@@ -114,6 +114,17 @@ h1 {
   margin-top: 28px;
 }
 
+.offer-meta {
+  margin-top: 22px;
+  display: grid;
+  gap: 8px;
+  color: #dbe1fa;
+}
+
+.offer-meta p {
+  margin: 0;
+}
+
 .btn {
   border: 1px solid transparent;
   border-radius: 999px;
@@ -160,6 +171,92 @@ h2 {
   border-radius: var(--radius);
   padding: 24px;
   box-shadow: 0 22px 55px rgba(0, 0, 0, 0.26);
+}
+
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.trust-card h3 {
+  margin-top: 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 34px;
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+
+.stat-card p {
+  margin: 0;
+  color: #dbe1fa;
+}
+
+.showcase-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.chips {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chips span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #dbe1fa;
+}
+
+.video-placeholder {
+  margin-top: 16px;
+  border: 1px dashed rgba(145, 170, 255, 0.44);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  background: rgba(6, 10, 24, 0.72);
+}
+
+.video-placeholder p {
+  margin: 0;
+  color: #dbe1fa;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.review-card p {
+  margin-top: 0;
+  color: #dbe1fa;
+  line-height: 1.7;
+}
+
+.review-card strong {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.cta-card {
+  display: grid;
+  gap: 14px;
 }
 
 .calculator-grid,
@@ -256,6 +353,14 @@ input[type="checkbox"] {
   border-color: rgba(123, 141, 255, 0.55);
 }
 
+.case-link {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+
 .tag {
   color: #c4cdf3;
   font-size: 14px;
@@ -264,6 +369,27 @@ input[type="checkbox"] {
 .result {
   color: var(--accent);
   font-weight: 700;
+}
+
+.case-intro {
+  margin-bottom: 12px;
+}
+
+.case-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 16px;
+}
+
+.case-section h2 {
+  margin-top: 0;
+}
+
+.case-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #dbe1fa;
+  line-height: 1.8;
 }
 
 .timeline {
@@ -322,7 +448,12 @@ hr {
   .calculator-grid,
   .contact-grid,
   .portfolio-grid,
-  .timeline {
+  .timeline,
+  .trust-grid,
+  .stats-grid,
+  .showcase-grid,
+  .reviews-grid,
+  .case-layout {
     grid-template-columns: 1fr;
   }
 }
