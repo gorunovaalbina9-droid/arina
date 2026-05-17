@@ -1,0 +1,18 @@
+id: dialog
+display_name: "Диалоговый"
+description_for_admin: Свободный разговор, память и поиск при необходимости.
+system_prompt: ""
+system_prompt_path: ./prompts/dialog_system.txt
+llm_params:
+  temperature: 0.7
+  max_tokens: 512
+tool_ids:
+  - memory_search
+  - memory_upsert
+  - web_search
+allowed_transitions:
+  - lesson
+  - play
+voice_aliases:
+  - "диалоговый режим"
+  - "давай поболтаем"

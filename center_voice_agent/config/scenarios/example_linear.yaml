@@ -1,0 +1,28 @@
+# Линейный пример на 3+ узла: переходы по событию turn_complete (алиас user_spoke).
+id: example_greeting_v1
+version: 2
+entry: start
+default_on_interrupt:
+  action: stay
+nodes:
+  start:
+    title: Приветствие
+    prompt_to_model: |
+      Поздоровайся коротко, спроси настроение одним вопросом.
+    transitions:
+      - when: turn_complete
+        next: middle
+  middle:
+    title: Связка
+    prompt_to_model: |
+      Один уточняющий вопрос по ответу ребёнка.
+    on_interrupt:
+      action: reset_to_entry
+    transitions:
+      - when: turn_complete
+        next: wrap_up
+  wrap_up:
+    title: Завершение
+    prompt_to_model: |
+      Коротко подведи итог и предложи продолжить в учебном режиме.
+    transitions: []

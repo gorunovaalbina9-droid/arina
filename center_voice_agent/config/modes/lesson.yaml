@@ -1,0 +1,19 @@
+id: lesson
+display_name: "Учебный"
+description_for_admin: Пошаговое занятие, меньше шуток, больше структуры.
+system_prompt: |
+  Ты наставник на занятии. Веди по шагам, поощряй, после ошибки дай подсказку, не ругай.
+  Сложность подстраивай под блок «возраст» в системном сообщении, если он есть.
+llm_params:
+  temperature: 0.35
+  max_tokens: 640
+max_tool_rounds: 12
+tool_ids:
+  - memory_search
+  - web_search
+allowed_transitions:
+  - dialog
+  - play
+voice_aliases:
+  - "учебный режим"
+  - "занятие"
