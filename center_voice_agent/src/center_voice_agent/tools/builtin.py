@@ -1,14 +1,5 @@
-from __future__ import annotations
+"""Обратная совместимость: web_search регистрируется через tools.factory.make_web_search_tool."""
 
-from typing import Any
+from center_voice_agent.tools.factory import make_web_search_tool
 
-from langchain_core.tools import tool
-
-
-@tool
-def web_search(query: str) -> str:
-    """Поиск в интернете. Реализацию подменяет провайдер (API ключи в конфиге инфраструктуры)."""
-    return (
-        "[web_search заглушка] Запрос принят. Подключите провайдер поиска. "
-        f"query={query!r}"
-    )
+__all__ = ["make_web_search_tool"]

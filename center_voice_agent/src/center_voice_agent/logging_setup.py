@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import sys
 import uuid
@@ -37,6 +38,11 @@ def new_correlation_id() -> str:
     return str(uuid.uuid4())
 
 
+def text_fingerprint(text: str) -> str:
+    """Короткий хэш текста для логов без хранения ПДн."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
 def bind_turn_context(
     *,
     correlation_id: str,
@@ -59,3 +65,19 @@ def bind_turn_context(
     if child_profile_id is not None:
         ctx["child_profile_id"] = child_profile_id
     return ctx
+
+
+def log_security_incident(
+    *,
+    reason: str,
+    session_id: str,
+    child_profile_id: Optional[str] = None,
+    direction: str = "input",
+) -> None:
+    structlog.get_logger(__name__).warning(
+        "security_incident",
+        reason=reason,
+        session_id=session_id,
+        child_profile_id=child_profile_id,
+        direction=direction,
+    )

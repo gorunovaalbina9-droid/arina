@@ -1,0 +1,28 @@
+# Шаблон для методиста: короткий чек-ин на 3 этапа
+id: check_in_three
+version: 1
+entry: greet
+default_on_interrupt:
+  action: stay
+nodes:
+  greet:
+    title: Приветствие
+    prompt_to_model: |
+      Поздоровайся и спроси, как прошёл день, одним вопросом.
+    transitions:
+      - when: turn_complete
+        next: reflect
+  reflect:
+    title: Уточнение
+    prompt_to_model: |
+      Поблагодари и задай один уточняющий вопрос по ответу.
+    on_interrupt:
+      action: reset_to_entry
+    transitions:
+      - when: turn_complete
+        next: close
+  close:
+    title: Завершение
+    prompt_to_model: |
+      Коротко подведи итог и предложи вернуться в обычный диалог.
+    transitions: []

@@ -1,0 +1,3 @@
+{"event": "gateway_in", "correlation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "session_id": "accept-deadbeef", "child_profile_id": "child-accept-abc123", "mode_id": "dialog", "scenario_id": null, "scenario_node_id": null, "user_text_len": 42, "age_band": "5-6", "user_text_fp": "b2b11afc89e6a463", "level": "info"}
+{"event": "gateway_llm_engine", "engine": "langgraph", "session_id": "accept-deadbeef", "level": "info"}
+{"event": "gateway_out", "correlation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "session_id": "accept-deadbeef", "mode_id": "dialog", "latency_ms": 1200, "llm_and_tools_ms": 1100, "reply_len": 85, "tool_calls": 1, "tool_rounds": 1, "level": "info"}

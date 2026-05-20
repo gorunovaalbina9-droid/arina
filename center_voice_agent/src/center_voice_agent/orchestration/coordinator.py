@@ -6,7 +6,9 @@ import structlog
 
 from center_voice_agent.agent.gateway import AgentGateway, AgentTurnResult
 from center_voice_agent.context.short_term import ShortTermMemory
+from center_voice_agent.logging_setup import log_security_incident
 from center_voice_agent.modes.commands import load_mode_commands, try_parse_mode_switch
+from center_voice_agent.security.moderation import check_input_blocked, check_output_blocked
 from center_voice_agent.scenarios.graph_engine import ScenarioRuntime
 from center_voice_agent.scenarios.loader import load_scenario_graph_unified
 from center_voice_agent.scenarios.phrases import load_scenario_commands, try_parse_scenario_reset
@@ -94,9 +96,31 @@ class SessionCoordinator:
         repo = self.gateway.session_repository
         default_mode = self.settings.default_mode_id
         await repo.ensure(session_id, child_profile_id, default_mode_id=default_mode)
+        await self.gateway._memory.ensure_child_profile(child_profile_id)
         row = await repo.get(session_id)
         assert row is not None
         current = row.mode_id
+
+        if self.settings.moderation_enabled:
+            blocked = check_input_blocked(user_text)
+            if blocked:
+                log_security_incident(
+                    reason=blocked,
+                    session_id=session_id,
+                    child_profile_id=child_profile_id,
+                    direction="input",
+                )
+                msg = "Давай поговорим о чём-нибудь другом — я не могу ответить на такой запрос."
+                short_term.append_user(user_text)
+                short_term.append_assistant(msg)
+                return AgentTurnResult(
+                    text=msg,
+                    reply_spoken=msg,
+                    mode_id=current,
+                    scenario_id=row.scenario_id,
+                    scenario_node_id=row.scenario_node_id,
+                    tool_calls=[],
+                )
 
         scenario_rt = self._resolve_scenario_runtime(scenario=scenario, row=row)
         scen_cmds = load_scenario_commands(self._scenario_commands_path)
@@ -142,6 +166,7 @@ class SessionCoordinator:
             await self._persist_scenario_pointer(session_id, scenario_rt)
             return AgentTurnResult(
                 text=msg,
+                reply_spoken=msg,
                 mode_id=target,
                 scenario_id=scenario_rt.graph.id if scenario_rt else None,
                 scenario_node_id=scenario_rt.current_node_id if scenario_rt else None,
@@ -168,4 +193,24 @@ class SessionCoordinator:
             skip_scenario_advance=skip_advance,
         )
         await self._persist_scenario_pointer(session_id, scenario_rt)
+        if self.settings.moderation_enabled:
+            ob = check_output_blocked(out.text)
+            if ob:
+                log_security_incident(
+                    reason=ob,
+                    session_id=session_id,
+                    child_profile_id=child_profile_id,
+                    direction="output",
+                )
+                safe = "Извини, я не могу так ответить. Давай сменим тему."
+                out = AgentTurnResult(
+                    text=safe,
+                    reply_spoken=safe,
+                    mode_id=out.mode_id,
+                    scenario_id=out.scenario_id,
+                    scenario_node_id=out.scenario_node_id,
+                    tool_calls=out.tool_calls,
+                    mode_changed=out.mode_changed,
+                    previous_mode_id=out.previous_mode_id,
+                )
         return out

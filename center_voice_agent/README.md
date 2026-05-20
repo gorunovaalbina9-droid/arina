@@ -1,12 +1,48 @@
 # center_voice_agent
 
-Обёртка агента на **LangChain** для голосового ИИ-наставника детского центра: динамические режимы, сценарии-граф, краткая/долгосрочная память, инструменты (в т.ч. под MCP), структурированное логирование.
+Обёртка агента на **LangChain** для голосового ИИ-наставника детского центра.
 
-## Быстрый старт (разработка)
+**Начните здесь:** [START_HERE.md](START_HERE.md) → подробная инструкция для вас: [docs/INSTRUKCIYA_DLYA_VAS.md](docs/INSTRUKCIYA_DLYA_VAS.md)
+
+## GitHub
+
+Код агента в монорепо [arina](https://github.com/gorunovaalbina9-droid/arina). **Актуальная ветка:** [`center-voice-agent`](https://github.com/gorunovaalbina9-droid/arina/tree/center-voice-agent/center_voice_agent) (ветка `master` на GitHub может отставать из‑за больших файлов в истории монорепо).
+
+## Python
+
+Используйте **3.11 или 3.12** (см. `.python-version`). Python 3.14 — только для локальных экспериментов; в CI гоняются 3.11 и 3.12 (корень монорепо: `.github/workflows/center_voice_agent.yml`).
+
+## Чеклист нового разработчика (блок 1)
+
+Полный список: **[docs/SETUP_CHECKLIST.md](docs/SETUP_CHECKLIST.md)**.
+
+| Шаг | Команда / действие |
+|-----|-------------------|
+| venv 3.12 | `py -3.12 -m venv .venv` → activate |
+| Зависимости | `pip install -e ".[dev]"` |
+| Конфиг | `copy .env.example .env` |
+| БД | `python -m center_voice_agent.cli.init_db` |
+| Демо | `python -m center_voice_agent.cli.demo_turn` |
+| Тесты | `python -m pytest tests/ -q` |
+
+**Приёмка:** любой разработчик за 1–2 часа проходит чеклист без правок кода.
+
+## Первый рабочий день
+
+Минимум для приёмки стенда с **реальным** LLM:
+
+1. `init_db` без ошибок.
+2. `python -m center_voice_agent.cli.live_turn Привет!` с заполненным `.env` — осмысленный ответ API.
+3. В JSON-логах: `correlation_id`, `gateway_in`, `gateway_out`.
+4. По желанию: запись в долгую память через tools (`memory_upsert` / `memory_search`).
+
+Подробнее: [docs/DECISIONS.md](docs/DECISIONS.md).
+
+## Быстрый старт
 
 ```bash
 cd center_voice_agent
-python -m venv .venv
+py -3.12 -m venv .venv
 .venv\Scripts\activate
 pip install -e ".[dev]"
 copy .env.example .env
@@ -16,29 +52,51 @@ python -m center_voice_agent.cli.demo_turn
 python -m pytest tests/ -q
 ```
 
-Подробный план этапов и приёмки: [docs/WORK_PLAN.md](docs/WORK_PLAN.md). Режимы и переключения: [docs/MODES.md](docs/MODES.md). Сценарии-граф: [docs/SCENARIOS.md](docs/SCENARIOS.md).
+## Реальный LLM
 
-## Структура
-
-- `config/modes/` — режимы (промпты, параметры LLM, список tools), правятся без перекомпиляции.
-- `config/voice/mode_commands.yaml` — фразы для смены режима (плюс `voice_aliases` в YAML режимов).
-- `config/voice/scenario_commands.yaml` — фразы сброса сценария (`reset_phrases`).
-- `config/age_bands/default.yaml` — текстовые блоки по возрасту для системного промпта.
-- `config/scenarios/` — графы сценариев по узлам-этапам.
-- `db/migrations/` — схема БД для профиля-оболочки и долгой памяти.
-- `src/center_voice_agent/memory/` — долгосрочная память (репозиторий + whitelist категорий).
-- `src/center_voice_agent/db/` — async SQLAlchemy, миграции `001_init.sql`, `init_database()`.
-
-Первая цель (БД + память + цикл tools в шлюзе) реализована: после `init_db` инструменты `memory_search` / `memory_upsert` ходят в SQLite; при реальном LLM шлюз выполняет до 10 раундов tool_calls (лимит переопределяется полем `max_tool_rounds` в режиме).
-
-Вторая цель (режимы): три режима `dialog` / `lesson` / `play`, внешний промпт для диалога (`system_prompt_path`), `allowed_transitions`, словарь команд, **`SessionCoordinator`**, возрастной блок, логи `modes_resolve` и **`mode_registry_loaded`** (в т.ч. **`mode_files`** с mtime), CLI **`reload_modes`**, тест на отказ смены режима.
-
-Третья цель (сценарии): YAML-граф в `config/scenarios/`, переходы по **`turn_complete`**, политика **`on_interrupt`**, загрузка по `id` из сессии (`attach_scenario`), фразы сброса, логи **`scenario_transition`** / **`scenario_interrupt`**, тесты на 3+ узла и персистентность указателя в БД; публикация графов в **`scenario_publish`**, **`SCENARIOS_SOURCE`**, CLI **`scenarios_publish`**, цикл LLM/tools через **LangGraph** (`USE_LANGGRAPH`).
-
-## Тесты
+Заполните `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` в `.env`, затем:
 
 ```bash
-python -m pytest tests/ -q
+python -m center_voice_agent.cli.live_turn Привет!
 ```
 
-В git ведутся небольшие атомарные коммиты по спринтам; для контрольных точек используйте теги (`git tag`), см. план в `docs/WORK_PLAN.md`.
+## Текстовый чат (без микрофона)
+
+```bash
+python -m center_voice_agent.cli.text_turn
+python -m center_voice_agent.cli.text_turn --live
+```
+
+## CLI
+
+| Команда | Назначение |
+|---------|------------|
+| `cli.init_db` | Миграции SQLite |
+| `cli.reload_modes` | Перезагрузка YAML режимов |
+| `cli.modes_publish` | Режим в таблицу `mode_definitions` |
+| `cli.scenarios_publish` | Сценарий в `scenario_publish` |
+| `cli.create_child` | Создать `child_profile` |
+| `cli.setup_check` | Проверка Python, .env, БД, режимов |
+| `cli.demo_turn` | Демо с fake LLM (`--live` — реальный API) |
+| `cli.live_acceptance` | Приёмка блока 2 (диалог + память + логи) |
+| `cli.memory_roundtrip` | Память upsert→search без LLM |
+| `cli.live_turn` | Один ход с реальным API |
+| `cli.live_acceptance` | Приёмка блока 2: API + память + логи |
+
+## Документация
+
+- [WORK_PLAN.md](docs/WORK_PLAN.md) — этапы и спринты
+- [DECISIONS.md](docs/DECISIONS.md) — договорённости команды
+- [SETUP_CHECKLIST.md](docs/SETUP_CHECKLIST.md) — чеклист окружения (1–2 ч)
+- [GOALS.md](docs/GOALS.md) — чеклист мелких целей
+- [MODES.md](docs/MODES.md) / [METHODIST.md](docs/METHODIST.md) — режимы
+- [SCENARIOS.md](docs/SCENARIOS.md) — сценарии-граф
+- [MEMORY_CATEGORIES.md](docs/MEMORY_CATEGORIES.md) — долгая память
+
+## Реализованные цели (кратко)
+
+1. **Память + БД** — SQLite, tools, цикл tool_calls, LangGraph.
+2. **Режимы** — YAML, координатор, БД, возрастные блоки.
+3. **Сценарии** — граф, персистентность, publish в БД, сброс по фразам.
+
+Дополнительно: prefetch памяти (`PREFETCH_LONG_TERM_MEMORY`), модерация-заглушка, `reply_spoken`, `WEB_SEARCH_URL`, логи без сырого текста (`LOG_REDACT_USER_TEXT`).

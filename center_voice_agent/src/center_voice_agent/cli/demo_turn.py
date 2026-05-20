@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import sys
 import uuid
@@ -24,8 +25,19 @@ from center_voice_agent.settings import get_settings
 
 
 async def main() -> None:
+    parser = argparse.ArgumentParser(description="Демо-диалог (fake LLM или --live с реальным API)")
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Реальный ChatOpenAI из .env / OPENAI_API_KEY (без StaticChatModel)",
+    )
+    args = parser.parse_args()
+
     settings = get_settings()
     setup_logging(json_logs=settings.log_json, level=settings.log_level)
+
+    if args.live and not (settings.llm_api_key or "").strip():
+        raise SystemExit("Для --live нужен LLM_API_KEY или OPENAI_API_KEY")
 
     sid = f"demo-{uuid.uuid4().hex[:10]}"
     correlation_id = new_correlation_id()
@@ -33,7 +45,7 @@ async def main() -> None:
 
     await init_database(settings.project_root, settings.database_url)
 
-    llm = StaticChatModel(
+    llm = None if args.live else StaticChatModel(
         responses=[
             "Привет! Я наставник центра. Как настроение?",
             "Рада слышать. Уточни: что сегодня было самым интересным?",
@@ -50,35 +62,38 @@ async def main() -> None:
         await gateway.session_repository.ensure(sid, "child-demo-1", default_mode_id=settings.default_mode_id)
         await gateway.session_repository.attach_scenario(sid, g.id)
 
-    sw = await coord.handle_user_turn(
-        session_id=sid,
-        child_profile_id="child-demo-1",
-        user_text="переключись в учебный",
-        short_term=stm,
-        age_band="5-6",
-    )
-    print("Смена режима:", sw.mode_changed, "->", sw.mode_id, "|", sw.text)
+    if not args.live:
+        sw = await coord.handle_user_turn(
+            session_id=sid,
+            child_profile_id="child-demo-1",
+            user_text="переключись в учебный",
+            short_term=stm,
+            age_band="5-6",
+        )
+        print("Смена режима:", sw.mode_changed, "->", sw.mode_id, "|", sw.text)
 
     r1 = await coord.handle_user_turn(
         session_id=sid,
         child_profile_id="child-demo-1",
-        user_text="Привет!",
+        user_text="Привет!" if not args.live else "Привет! Ответь одним коротким предложением.",
         short_term=stm,
-        long_term_summary="Любит рисовать и кошек.",
+        long_term_summary=None if args.live else "Любит рисовать и кошек.",
         age_band="5-6",
     )
     print(r1.text)
-    print("Узел сценария после 1-го хода:", r1.scenario_node_id)
+    if not args.live:
+        print("Узел сценария после 1-го хода:", r1.scenario_node_id)
 
-    r2 = await coord.handle_user_turn(
-        session_id=sid,
-        child_profile_id="child-demo-1",
-        user_text="Рисовал кота.",
-        short_term=stm,
-        age_band="5-6",
-    )
-    print(r2.text)
-    print("Узел сценария после 2-го хода:", r2.scenario_node_id)
+    if not args.live:
+        r2 = await coord.handle_user_turn(
+            session_id=sid,
+            child_profile_id="child-demo-1",
+            user_text="Рисовал кота.",
+            short_term=stm,
+            age_band="5-6",
+        )
+        print(r2.text)
+        print("Узел сценария после 2-го хода:", r2.scenario_node_id)
 
     await gateway.aclose()
 
