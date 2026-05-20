@@ -23,7 +23,10 @@
 |---------|----------|
 | Протокол | OpenAI-compatible HTTP API (`ChatOpenAI`, `LLM_BASE_URL`) |
 | Параметры | `LLM_API_KEY`, `LLM_MODEL` в `center_voice_agent/.env` (не коммитить) |
-| Запасной ключ | `OPENAI_API_KEY` из env или `voice_assistant/.env`, если `LLM_API_KEY` — заглушка |
+| Запасной ключ | `OPENAI_API_KEY` / `LLM_FALLBACK_ENV_FILE` / `config/agent.yaml` → только в `Settings` |
+| Несекретные лимиты | `config/agent.yaml` + переопределение через `.env` |
+| Слои | `AppContainer` → `SessionCoordinator` → `AgentGateway` + `TurnPromptBuilder` + `run_tool_loop` |
+| Память в tools | `child_profile_id` сессии, не аргумент LLM |
 | Tool-calling | Предпочтительно нативное (OpenAI-формат). **Plan B реализован:** `TEXT_TOOL_FALLBACK=true` — JSON в тексте ответа → `gateway_text_tool_fallback` → выполнение tool |
 
 ## Критерий «первый рабочий день»

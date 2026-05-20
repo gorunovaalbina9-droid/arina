@@ -34,13 +34,14 @@ await session.close()
 ## Контракт вызова (низкий уровень)
 
 ```python
-from center_voice_agent.orchestration.coordinator import SessionCoordinator
-from center_voice_agent.agent.gateway import AgentGateway
+from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
+from center_voice_agent.settings import get_settings
 
-gateway = AgentGateway()
-coord = SessionCoordinator(gateway)
-stm = ShortTermMemory(max_turns=15)
+settings = get_settings()
+container = AppContainer.from_settings(settings)
+coord = container.build_coordinator()
+stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
 
 result = await coord.handle_user_turn(
     session_id="unique-session-id",
@@ -51,6 +52,7 @@ result = await coord.handle_user_turn(
 )
 
 tts_text = result.reply_spoken or result.text
+await coord.gateway.aclose()
 ```
 
 Перед первым ходом: `init_db`, при сценарии — `session_repository.attach_scenario(session_id, "check_in_three")`.

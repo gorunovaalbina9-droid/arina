@@ -15,7 +15,7 @@ if str(SRC) not in sys.path:
 import structlog
 
 from center_voice_agent.agent.fake_llm import StaticChatModel
-from center_voice_agent.agent.gateway import AgentGateway
+from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.db.session import init_database
 from center_voice_agent.logging_setup import bind_turn_context, new_correlation_id, setup_logging
@@ -32,9 +32,10 @@ async def main() -> None:
     await init_database(settings.project_root, settings.database_url)
     use_live = bool(settings.llm_api_key) and "--live" in sys.argv
     llm = None if use_live else StaticChatModel(responses=["Поняла.", "Хорошо, продолжаем."])
-    gateway = AgentGateway(settings=settings, llm=llm)
-    coord = SessionCoordinator(gateway, settings=settings)
-    stm = ShortTermMemory(max_turns=15)
+    container = AppContainer.from_settings(settings)
+    coord = container.build_coordinator(llm=llm)
+    gateway = coord.gateway
+    stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
 
     print("Текстовый чат (exit / выход). Режим:", "live LLM" if use_live else "fake LLM")
     while True:

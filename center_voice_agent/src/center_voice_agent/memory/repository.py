@@ -56,7 +56,15 @@ class LongTermMemoryRepository:
         """Текстовый поиск по value_text / key / category для подстановки в промпт."""
         strip_q = query.strip()
         wide = 1 if not strip_q else 0
-        like = f"%{strip_q}%" if strip_q else "%"
+        if strip_q:
+            escaped = (
+                strip_q.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
+            like = f"%{escaped}%"
+        else:
+            like = "%"
         async with self._session_factory() as session:
             result = await session.execute(
                 text(

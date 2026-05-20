@@ -14,11 +14,10 @@ if str(SRC) not in sys.path:
 
 import structlog
 
-from center_voice_agent.agent.gateway import AgentGateway
+from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.db.session import init_database
 from center_voice_agent.logging_setup import bind_turn_context, new_correlation_id, setup_logging
-from center_voice_agent.orchestration.coordinator import SessionCoordinator
 from center_voice_agent.settings import get_settings
 
 
@@ -41,9 +40,10 @@ async def main() -> None:
     structlog.contextvars.bind_contextvars(**bind_turn_context(correlation_id=new_correlation_id(), session_id=sid))
 
     await init_database(settings.project_root, settings.database_url)
-    gateway = AgentGateway(settings=settings)
-    coord = SessionCoordinator(gateway, settings=settings)
-    stm = ShortTermMemory(max_turns=15)
+    container = AppContainer.from_settings(settings)
+    coord = container.build_coordinator()
+    gateway = coord.gateway
+    stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
 
     user = " ".join(sys.argv[1:]).strip() or "Привет! Расскажи коротко, чем ты можешь помочь."
     result = await coord.handle_user_turn(

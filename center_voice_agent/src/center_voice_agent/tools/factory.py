@@ -9,18 +9,25 @@ from center_voice_agent.tools.impl import memory as memory_impl
 from center_voice_agent.tools.impl import web_search as web_search_impl
 
 _MEMORY_SEARCH_DESC = (
-    "Ищет записи в долгосрочной памяти о ребёнке по смыслу запроса (текст, ключевые слова). "
-    "Параметр child_profile_id должен совпадать с текущей сессией."
+    "Ищет записи в долгосрочной памяти о текущем ребёнке по смыслу запроса. "
+    "Параметры: query (строка), limit (число, по умолчанию 5)."
 )
 _MEMORY_UPSERT_DESC = (
-    "Сохраняет или обновляет факт в долгосрочной памяти. Категории только из разрешённого списка: "
-    "name, hobby, preference, progress, note. Для обновления существующей записи укажи key."
+    "Сохраняет факт в долгосрочную память текущего ребёнка. "
+    "category: name, hobby, preference, progress, note. "
+    "value_text — текст факта; key — опционально для обновления записи."
 )
 
 
-def make_memory_search_tool(repo: LongTermMemoryRepository) -> StructuredTool:
-    async def _run(child_profile_id: str, query: str, limit: int = 5) -> str:
-        return await memory_impl.memory_search_text(repo, child_profile_id, query, limit=limit)
+def make_memory_search_tool(
+    repo: LongTermMemoryRepository,
+    *,
+    child_profile_id: str,
+) -> StructuredTool:
+    async def _run(query: str, limit: int = 5) -> str:
+        return await memory_impl.memory_search_text(
+            repo, child_profile_id, query, limit=limit
+        )
 
     return StructuredTool.from_function(
         coroutine=_run,
@@ -29,9 +36,12 @@ def make_memory_search_tool(repo: LongTermMemoryRepository) -> StructuredTool:
     )
 
 
-def make_memory_upsert_tool(repo: LongTermMemoryRepository) -> StructuredTool:
+def make_memory_upsert_tool(
+    repo: LongTermMemoryRepository,
+    *,
+    child_profile_id: str,
+) -> StructuredTool:
     async def _run(
-        child_profile_id: str,
         category: str,
         value_text: str,
         key: Optional[str] = None,
@@ -70,11 +80,12 @@ def build_tools_for_mode(
     tool_ids: list[str],
     *,
     memory_repo: Optional[LongTermMemoryRepository],
+    child_profile_id: str,
     web_search_url: Optional[str] = None,
     web_search_timeout_sec: float = 15.0,
     tool_max_output_chars: int = 4000,
 ) -> list[Any]:
-    """Собирает LangChain-инструменты для режима; память требует memory_repo."""
+    """Собирает LangChain-инструменты для режима; память привязана к child_profile_id сессии."""
     out: list[Any] = []
     for tid in tool_ids:
         if tid == "web_search":
@@ -87,14 +98,18 @@ def build_tools_for_mode(
             )
         elif tid == "memory_search":
             if memory_repo is None:
-                raise ValueError("Режим запрашивает memory_search, но memory_repo не передан в фабрику.")
-            out.append(make_memory_search_tool(memory_repo))
+                raise ValueError("Режим запрашивает memory_search, но memory_repo не передан.")
+            out.append(
+                make_memory_search_tool(memory_repo, child_profile_id=child_profile_id)
+            )
         elif tid == "memory_upsert":
             if memory_repo is None:
-                raise ValueError("Режим запрашивает memory_upsert, но memory_repo не передан в фабрику.")
-            out.append(make_memory_upsert_tool(memory_repo))
+                raise ValueError("Режим запрашивает memory_upsert, но memory_repo не передан.")
+            out.append(
+                make_memory_upsert_tool(memory_repo, child_profile_id=child_profile_id)
+            )
         else:
             raise KeyError(
-                f"Неизвестный инструмент: {tid}. Добавьте в tools/factory.py или проверьте config/modes."
+                f"Неизвестный инструмент: {tid}. Добавьте в tools/factory.py или config/modes."
             )
     return out

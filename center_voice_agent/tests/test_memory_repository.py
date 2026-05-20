@@ -36,6 +36,6 @@ def test_build_tools_requires_memory_when_mode_has_memory() -> None:
     from center_voice_agent.tools.factory import build_tools_for_mode
 
     with pytest.raises(ValueError):
-        build_tools_for_mode(["memory_search"], memory_repo=None)
+        build_tools_for_mode(["memory_search"], memory_repo=None, child_profile_id="c1")
 
-    assert build_tools_for_mode(["web_search"], memory_repo=None)
+    assert build_tools_for_mode(["web_search"], memory_repo=None, child_profile_id="c1")

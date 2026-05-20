@@ -1,0 +1,80 @@
+"""
+Сборка зависимостей из Settings (единственная точка чтения env — settings.py).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+
+from langchain_core.language_models import BaseChatModel
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from center_voice_agent.agent.prompt_builder import TurnPromptBuilder
+from center_voice_agent.age_bands.loader import load_age_bands
+from center_voice_agent.db.session import create_engine_and_session_factory, ensure_sqlite_parent_dir
+from center_voice_agent.memory.repository import LongTermMemoryRepository
+from center_voice_agent.modes.registry import ModeRegistry
+from center_voice_agent.orchestration.coordinator import SessionCoordinator
+from center_voice_agent.session.repo import SessionStateRepository
+from center_voice_agent.settings import Settings, get_settings
+
+
+@dataclass
+class AppContainer:
+    """Инфраструктура: Settings, БД, репозитории, реестр режимов, сборщик промпта."""
+
+    settings: Settings
+    mode_registry: ModeRegistry
+    memory_repository: LongTermMemoryRepository
+    session_repository: SessionStateRepository
+    prompt_builder: TurnPromptBuilder
+    age_bands: dict
+    _engine: Optional[AsyncEngine] = None
+
+    @classmethod
+    def from_settings(
+        cls,
+        settings: Optional[Settings] = None,
+        *,
+        memory_repository: Optional[LongTermMemoryRepository] = None,
+    ) -> AppContainer:
+        s = settings or get_settings()
+        ensure_sqlite_parent_dir(s.database_url)
+        engine, session_factory = create_engine_and_session_factory(s.database_url)
+        memory = memory_repository or LongTermMemoryRepository(session_factory)
+        modes = ModeRegistry(
+            s.modes_dir,
+            project_root=s.project_root,
+            database_url=s.database_url,
+            modes_source=s.modes_source,
+            modes_center_id=s.modes_center_id,
+        )
+        bands = load_age_bands(s.age_bands_path)
+        return cls(
+            settings=s,
+            mode_registry=modes,
+            memory_repository=memory,
+            session_repository=SessionStateRepository(session_factory),
+            prompt_builder=TurnPromptBuilder(age_bands=bands),
+            age_bands=bands,
+            _engine=engine,
+        )
+
+    def build_gateway(self, *, llm: Optional[BaseChatModel] = None):
+        from center_voice_agent.agent.gateway import AgentGateway
+
+        return AgentGateway(container=self, llm=llm)
+
+    def build_coordinator(self, *, llm: Optional[BaseChatModel] = None) -> SessionCoordinator:
+        gateway = self.build_gateway(llm=llm)
+        return SessionCoordinator(
+            gateway,
+            settings=self.settings,
+            mode_registry=self.mode_registry,
+        )
+
+    async def aclose(self) -> None:
+        if self._engine is not None:
+            await self._engine.dispose()
+            self._engine = None

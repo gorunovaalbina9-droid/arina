@@ -24,7 +24,7 @@ if str(SRC) not in sys.path:
 
 import structlog
 
-from center_voice_agent.agent.gateway import AgentGateway
+from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.db.session import init_database
 from center_voice_agent.logging_setup import bind_turn_context, new_correlation_id, setup_logging
@@ -83,9 +83,10 @@ async def _run_acceptance(*, skip_memory: bool) -> int:
     print(f"OK: correlation_id={correlation_id}")
 
     await init_database(settings.project_root, settings.database_url)
-    gateway = AgentGateway(settings=settings)
-    coord = SessionCoordinator(gateway, settings=settings)
-    stm = ShortTermMemory(max_turns=15)
+    container = AppContainer.from_settings(settings)
+    coord = container.build_coordinator()
+    gateway = coord.gateway
+    stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
 
     _print_header("2.2 Реальный диалог (без StaticChatModel)")
     print("(смотрите JSON-строки gateway_in / gateway_out в консоли)")

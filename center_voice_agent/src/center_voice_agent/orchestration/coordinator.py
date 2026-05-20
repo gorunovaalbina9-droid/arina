@@ -8,6 +8,7 @@ from center_voice_agent.agent.gateway import AgentGateway, AgentTurnResult
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.logging_setup import log_security_incident
 from center_voice_agent.modes.commands import load_mode_commands, try_parse_mode_switch
+from center_voice_agent.modes.registry import ModeRegistry
 from center_voice_agent.security.moderation import check_input_blocked, check_output_blocked
 from center_voice_agent.scenarios.graph_engine import ScenarioRuntime
 from center_voice_agent.scenarios.loader import load_scenario_graph_unified
@@ -29,15 +30,17 @@ class SessionCoordinator:
         gateway: AgentGateway,
         *,
         settings: Optional[Settings] = None,
+        mode_registry: Optional[ModeRegistry] = None,
     ) -> None:
         self.gateway = gateway
         self.settings = settings or get_settings()
+        self._modes = mode_registry or gateway.modes
         self._commands_path = self.settings.voice_commands_path
         self._scenario_commands_path = self.settings.scenario_commands_path
 
     def _voice_alias_map(self) -> dict[str, list[str]]:
         out: dict[str, list[str]] = {}
-        for mid, mode in self.gateway.modes.get_all().items():
+        for mid, mode in self._modes.get_all().items():
             if mode.voice_aliases:
                 out[mid] = list(mode.voice_aliases)
         return out
@@ -45,9 +48,9 @@ class SessionCoordinator:
     def _allowed(self, current: str, target: str) -> bool:
         if current == target:
             return False
-        mode = self.gateway.modes.get(current)
+        mode = self._modes.get(current)
         if not mode.allowed_transitions:
-            return target in self.gateway.modes.list_ids()
+            return target in self._modes.list_ids()
         return target in mode.allowed_transitions
 
     def _resolve_scenario_runtime(
@@ -96,13 +99,14 @@ class SessionCoordinator:
         repo = self.gateway.session_repository
         default_mode = self.settings.default_mode_id
         await repo.ensure(session_id, child_profile_id, default_mode_id=default_mode)
-        await self.gateway._memory.ensure_child_profile(child_profile_id)
+        await self.gateway.memory_repository.ensure_child_profile(child_profile_id)
         row = await repo.get(session_id)
         assert row is not None
         current = row.mode_id
 
+        blocked_phrases = self.settings.moderation_blocked_substrings
         if self.settings.moderation_enabled:
-            blocked = check_input_blocked(user_text)
+            blocked = check_input_blocked(user_text, blocked=blocked_phrases)
             if blocked:
                 log_security_incident(
                     reason=blocked,
@@ -153,7 +157,7 @@ class SessionCoordinator:
 
             prev = current
             await repo.set_mode(session_id, target)
-            new_mode = self.gateway.modes.get(target)
+            new_mode = self._modes.get(target)
             msg = f"Переключилась в режим «{new_mode.display_name}». Можешь говорить дальше."
             log.info(
                 "mode_changed",
@@ -194,7 +198,7 @@ class SessionCoordinator:
         )
         await self._persist_scenario_pointer(session_id, scenario_rt)
         if self.settings.moderation_enabled:
-            ob = check_output_blocked(out.text)
+            ob = check_output_blocked(out.text, blocked=blocked_phrases)
             if ob:
                 log_security_incident(
                     reason=ob,

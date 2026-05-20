@@ -15,7 +15,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 
-from center_voice_agent.tools.impl.web_search import truncate_tool_output
+from center_voice_agent.tools.runtime import invoke_tool
 
 log = structlog.get_logger(__name__)
 
@@ -47,6 +47,7 @@ async def _tools_node(state: LlmToolGraphState, config: RunnableConfig) -> dict[
     configurable = config.get("configurable") or {}
     tool_map: dict[str, Any] = configurable["tool_map"]
     max_chars = int(configurable.get("tool_max_output_chars", 4000))
+    child_profile_id: str = configurable["child_profile_id"]
     last = state["messages"][-1]
     if not isinstance(last, AIMessage) or not last.tool_calls:
         return {}
@@ -58,12 +59,13 @@ async def _tools_node(state: LlmToolGraphState, config: RunnableConfig) -> dict[
         args = tc.get("args") or {}
         if not isinstance(args, dict):
             args = dict(args) if hasattr(args, "items") else {}
-        tool_obj = tool_map.get(name)
-        if tool_obj is None:
-            out = f"Неизвестный инструмент: {name}"
-        else:
-            out = await tool_obj.ainvoke(args)
-        out = truncate_tool_output(str(out), max_chars)
+        out = await invoke_tool(
+            tool_map,
+            name,
+            args,
+            child_profile_id=child_profile_id,
+            max_chars=max_chars,
+        )
         tool_msgs.append(ToolMessage(content=out, tool_call_id=tid))
         batch_logs.append({"name": name, "args": args, "id": tid})
     log.info(
@@ -112,6 +114,7 @@ async def run_llm_tools_langgraph(
     messages: list[BaseMessage],
     tool_map: dict[str, Any],
     max_tool_rounds: int,
+    child_profile_id: str,
     tool_max_output_chars: int = 4000,
 ) -> tuple[str, list[dict[str, Any]], int]:
     """Возвращает (текст ответа, список tool-вызовов, число завершённых «батчей» tools)."""
@@ -129,6 +132,7 @@ async def run_llm_tools_langgraph(
                 "llm": llm,
                 "tool_map": tool_map,
                 "tool_max_output_chars": tool_max_output_chars,
+                "child_profile_id": child_profile_id,
             },
             "recursion_limit": max(60, max_r * 8 + 12),
         },

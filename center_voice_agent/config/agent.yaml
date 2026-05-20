@@ -1,0 +1,6 @@
+# Поведение агента (не секреты). Секреты — только в .env (см. Settings).
+short_term_max_messages: 15
+default_max_tool_rounds: 10
+memory_prefetch_limit: 8
+# Относительно center_voice_agent/, если нет LLM_API_KEY в .env
+openai_fallback_env_relative: ../voice_assistant/.env

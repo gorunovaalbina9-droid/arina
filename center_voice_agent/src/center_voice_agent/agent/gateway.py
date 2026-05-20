@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import structlog
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 
-from center_voice_agent.age_bands.loader import load_age_bands, resolve_age_prompt
+from center_voice_agent.agent.llm_client import build_chat_model
+from center_voice_agent.agent.prompt_builder import TurnPromptBuilder
 from center_voice_agent.agent.text_tool_fallback import parse_text_tool_calls
-from center_voice_agent.agent.turn_langgraph import run_llm_tools_langgraph
+from center_voice_agent.agent.tool_loop import run_tool_loop
 from center_voice_agent.context.short_term import ShortTermMemory
-from center_voice_agent.db.session import create_engine_and_session_factory, ensure_sqlite_parent_dir
+
+if TYPE_CHECKING:
+    from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.logging_setup import text_fingerprint
 from center_voice_agent.memory.repository import LongTermMemoryRepository
 from center_voice_agent.modes.registry import ModeRegistry
@@ -24,8 +26,6 @@ from center_voice_agent.tools.factory import build_tools_for_mode
 from center_voice_agent.tools.impl.web_search import truncate_tool_output
 
 log = structlog.get_logger(__name__)
-
-_DEFAULT_MAX_TOOL_ROUNDS = 10
 
 
 @dataclass
@@ -42,47 +42,45 @@ class AgentTurnResult:
 
 class AgentGateway:
     """
-    Единая точка входа (шлюз): режим из YAML, инструменты по списку, краткая память 15 реплик.
+    Шлюз хода: оркестрирует промпт, LLM и tools.
+    Зависимости приходят из AppContainer (не из env).
     """
 
     def __init__(
         self,
         *,
+        container: Optional["AppContainer"] = None,
         settings: Optional[Settings] = None,
         llm: Optional[BaseChatModel] = None,
         memory_repository: Optional[LongTermMemoryRepository] = None,
     ) -> None:
-        self.settings = settings or get_settings()
-        self.modes = ModeRegistry(
-            self.settings.modes_dir,
-            project_root=self.settings.project_root,
-            database_url=self.settings.database_url,
-            modes_source=self.settings.modes_source,
-            modes_center_id=self.settings.modes_center_id,
-        )
-        self._llm_override = llm
-        self._age_bands = load_age_bands(self.settings.age_bands_path)
-
-        ensure_sqlite_parent_dir(self.settings.database_url)
-        self._engine, session_factory = create_engine_and_session_factory(self.settings.database_url)
-        self._session_repo = SessionStateRepository(session_factory)
-        if memory_repository is not None:
-            self._memory = memory_repository
+        if container is not None:
+            self._container = container
         else:
-            self._memory = LongTermMemoryRepository(session_factory)
+            from center_voice_agent.composition.container import AppContainer
+
+            self._container = AppContainer.from_settings(
+                settings,
+                memory_repository=memory_repository,
+            )
+        self.settings = self._container.settings
+        self._llm_override = llm
+        self._prompt_builder = self._container.prompt_builder
+
+    @property
+    def modes(self) -> ModeRegistry:
+        return self._container.mode_registry
 
     @property
     def session_repository(self) -> SessionStateRepository:
-        return self._session_repo
+        return self._container.session_repository
 
     @property
     def memory_repository(self) -> LongTermMemoryRepository:
-        return self._memory
+        return self._container.memory_repository
 
     async def aclose(self) -> None:
-        if self._engine is not None:
-            await self._engine.dispose()
-            self._engine = None
+        await self._container.aclose()
 
     async def _try_text_tool_fallback(
         self,
@@ -108,8 +106,6 @@ class AgentGateway:
         for call in parsed:
             name = call["name"]
             args = dict(call["args"])
-            if "child_profile_id" not in args:
-                args["child_profile_id"] = child_profile_id
             tool_obj = tool_map.get(name)
             if tool_obj is None:
                 out = f"Неизвестный инструмент: {name}"
@@ -127,19 +123,6 @@ class AgentGateway:
         new_text = str(ai_msg.content) if ai_msg.content else text
         return new_text, executed
 
-    def _build_llm(self, mode_params: dict[str, Any]) -> BaseChatModel:
-        if self._llm_override is not None:
-            return self._llm_override
-        if not self.settings.llm_api_key:
-            raise RuntimeError("LLM_API_KEY не задан. Для демо передайте llm=StaticChatModel в AgentGateway.")
-        return ChatOpenAI(
-            model=self.settings.llm_model,
-            temperature=float(mode_params.get("temperature", 0.5)),
-            max_tokens=int(mode_params.get("max_tokens", 512)),
-            base_url=self.settings.llm_base_url,
-            api_key=self.settings.llm_api_key,
-        )
-
     async def _resolve_long_term_summary(
         self,
         child_profile_id: str,
@@ -149,8 +132,12 @@ class AgentGateway:
             return long_term_summary
         if not self.settings.prefetch_long_term_memory:
             return None
-        await self._memory.ensure_child_profile(child_profile_id)
-        return await self._memory.search(child_profile_id, "", limit=8)
+        await self.memory_repository.ensure_child_profile(child_profile_id)
+        return await self.memory_repository.search(
+            child_profile_id,
+            "",
+            limit=self.settings.prefetch_memory_limit,
+        )
 
     async def run_turn(
         self,
@@ -167,7 +154,7 @@ class AgentGateway:
     ) -> AgentTurnResult:
         t0 = time.perf_counter()
         mode = self.modes.get(mode_id)
-        max_rounds = mode.max_tool_rounds or _DEFAULT_MAX_TOOL_ROUNDS
+        max_rounds = mode.max_tool_rounds or self.settings.default_max_tool_rounds
         max_tool_chars = self.settings.tool_max_output_chars
 
         log.info(
@@ -180,18 +167,20 @@ class AgentGateway:
 
         tools = build_tools_for_mode(
             mode.tool_ids,
-            memory_repo=self._memory,
+            memory_repo=self.memory_repository,
+            child_profile_id=child_profile_id,
             web_search_url=self.settings.web_search_url,
             web_search_timeout_sec=self.settings.web_search_timeout_sec,
             tool_max_output_chars=max_tool_chars,
         )
 
-        llm_base = self._build_llm(mode.llm_params)
-        if self._llm_override is None:
-            llm = llm_base.bind_tools(tools)
-        else:
-            llm = llm_base
-
+        llm_base = build_chat_model(
+            self.settings,
+            mode.llm_params,
+            override=self._llm_override,
+        )
+        bind_tools = self._llm_override is None
+        llm = llm_base.bind_tools(tools) if bind_tools else llm_base
         tool_map = {t.name: t for t in tools}
 
         scenario_id = scenario.graph.id if scenario else None
@@ -212,103 +201,28 @@ class AgentGateway:
             gw_in["user_text"] = user_text
         log.info("gateway_in", **gw_in)
 
-        short_term.append_user(user_text)
-
-        node_hint = ""
-        if scenario is not None:
-            node_hint = scenario.current_node().prompt_to_model
-
         ltm = await self._resolve_long_term_summary(child_profile_id, long_term_summary)
-
-        system_parts = [mode.system_prompt.strip()]
-        age_block = resolve_age_prompt(self._age_bands, age_band)
-        if age_block:
-            system_parts.append("Настройка по возрасту (из конфигурации центра):\n" + age_block)
-        if ltm:
-            system_parts.append("Краткая долгосрочная память о ребёнке:\n" + ltm.strip())
-        if node_hint:
-            system_parts.append("Текущий этап сценария:\n" + node_hint.strip())
-
-        messages: list[BaseMessage] = [
-            SystemMessage(content="\n\n".join(system_parts)),
-            *short_term.as_langchain(),
-        ]
+        messages = self._prompt_builder.build_messages(
+            mode=mode,
+            user_text=user_text,
+            short_term=short_term,
+            long_term_summary=ltm,
+            age_band=age_band,
+            scenario=scenario,
+        )
 
         t_llm0 = time.perf_counter()
-        executed_tools: list[dict[str, Any]] = []
-        rounds = 0
-
-        if self.settings.use_langgraph:
-            log.info("gateway_llm_engine", engine="langgraph", session_id=session_id)
-            text, executed_tools, rounds = await run_llm_tools_langgraph(
-                llm=llm,
-                messages=messages,
-                tool_map=tool_map,
-                max_tool_rounds=max_rounds,
-                tool_max_output_chars=max_tool_chars,
-            )
-            if rounds >= max_rounds:
-                log.warning("gateway_tool_limit", session_id=session_id, rounds=rounds)
-        else:
-            log.info("gateway_llm_engine", engine="imperative", session_id=session_id)
-            ai_msg = await llm.ainvoke(messages)
-            if not isinstance(ai_msg, AIMessage):
-                raise TypeError("Ожидался AIMessage от LLM")
-
-            while ai_msg.tool_calls and rounds < max_rounds:
-                rounds += 1
-                log.info(
-                    "gateway_tool_round",
-                    session_id=session_id,
-                    round=rounds,
-                    tool_names=[tc.get("name") for tc in ai_msg.tool_calls],
-                )
-                messages.append(ai_msg)
-                for tc in ai_msg.tool_calls:
-                    name = str(tc.get("name", ""))
-                    tid = str(tc.get("id", ""))
-                    args = tc.get("args") or {}
-                    if not isinstance(args, dict):
-                        args = dict(args) if hasattr(args, "items") else {}
-                    tool_obj = tool_map.get(name)
-                    if tool_obj is None:
-                        out = f"Неизвестный инструмент: {name}"
-                    else:
-                        out = await tool_obj.ainvoke(args)
-                    out = truncate_tool_output(str(out), max_tool_chars)
-                    messages.append(ToolMessage(content=out, tool_call_id=tid))
-                    executed_tools.append({"name": name, "args": args, "id": tid})
-
-                ai_msg = await llm.ainvoke(messages)
-                if not isinstance(ai_msg, AIMessage):
-                    raise TypeError("Ожидался AIMessage от LLM после инструментов")
-
-            if ai_msg.tool_calls:
-                text = (
-                    "Слишком много шагов с инструментами за один раз. "
-                    "Давай упростим вопрос или попробуем снова чуть позже."
-                )
-                log.warning("gateway_tool_limit", session_id=session_id, rounds=rounds)
-            else:
-                text = str(ai_msg.content) if ai_msg.content else ""
-
-        if (
-            self._llm_override is None
-            and tools
-            and not executed_tools
-            and self.settings.text_tool_fallback
-        ):
-            text, fb_tools = await self._try_text_tool_fallback(
-                llm=llm,
-                messages=messages,
-                text=text,
-                tool_map=tool_map,
-                child_profile_id=child_profile_id,
-                session_id=session_id,
-                max_tool_chars=max_tool_chars,
-            )
-            executed_tools.extend(fb_tools)
-
+        text, executed_tools, rounds = await run_tool_loop(
+            self.settings,
+            llm=llm,
+            messages=messages,
+            tool_map=tool_map,
+            max_tool_rounds=max_rounds,
+            session_id=session_id,
+            child_profile_id=child_profile_id,
+            bind_tools=bind_tools,
+            text_fallback=self._try_text_tool_fallback if bind_tools else None,
+        )
         llm_ms = int((time.perf_counter() - t_llm0) * 1000)
 
         short_term.append_assistant(text)

@@ -34,7 +34,11 @@ async def main() -> None:
     child_id = f"child-mem-{uuid.uuid4().hex[:6]}"
     marker = f"roundtrip-{uuid.uuid4().hex[:8]}"
 
-    tools = build_tools_for_mode(["memory_upsert", "memory_search"], memory_repo=repo)
+    tools = build_tools_for_mode(
+        ["memory_upsert", "memory_search"],
+        memory_repo=repo,
+        child_profile_id=child_id,
+    )
     upsert = next(t for t in tools if t.name == "memory_upsert")
     search = next(t for t in tools if t.name == "memory_search")
 

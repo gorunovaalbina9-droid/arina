@@ -15,11 +15,10 @@ if str(SRC) not in sys.path:
 import structlog
 
 from center_voice_agent.agent.fake_llm import StaticChatModel
-from center_voice_agent.agent.gateway import AgentGateway
+from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.db.session import init_database
 from center_voice_agent.logging_setup import bind_turn_context, new_correlation_id, setup_logging
-from center_voice_agent.orchestration.coordinator import SessionCoordinator
 from center_voice_agent.scenarios.graph_engine import load_scenario
 from center_voice_agent.settings import get_settings
 
@@ -52,10 +51,11 @@ async def main() -> None:
             "Продолжаем в учебном режиме.",
         ]
     )
-    gateway = AgentGateway(settings=settings, llm=llm)
-    coord = SessionCoordinator(gateway, settings=settings)
+    container = AppContainer.from_settings(settings)
+    coord = container.build_coordinator(llm=llm)
+    gateway = coord.gateway
 
-    stm = ShortTermMemory(max_turns=15)
+    stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
     scenario_path = settings.scenarios_dir / "example_linear.yaml"
     if scenario_path.is_file():
         g = load_scenario(scenario_path)

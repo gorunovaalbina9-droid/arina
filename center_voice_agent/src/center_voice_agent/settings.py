@@ -1,10 +1,17 @@
+"""
+Глобальная конфигурация приложения.
+
+Единственный модуль, который читает переменные окружения и .env.
+Остальной код получает только экземпляр Settings (или AppContainer).
+"""
+
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Optional
 
+import yaml
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -29,7 +36,6 @@ def _read_dotenv_value(path: Path, key: str) -> str | None:
 
 
 def _find_project_root() -> Path:
-    """Каталог center_voice_agent (родитель src)."""
     here = Path(__file__).resolve()
     return here.parents[2]
 
@@ -46,6 +52,10 @@ class Settings(BaseSettings):
     llm_base_url: str = Field(default="https://api.openai.com/v1", alias="LLM_BASE_URL")
     llm_api_key: Optional[str] = Field(default=None, alias="LLM_API_KEY")
     llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")
+    # Запасной ключ (только здесь читается из env)
+    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    # Опционально: путь к .env с OPENAI_API_KEY (например ../voice_assistant/.env)
+    llm_fallback_env_file: Optional[str] = Field(default=None, alias="LLM_FALLBACK_ENV_FILE")
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     log_json: bool = Field(default=True, alias="LOG_JSON")
@@ -81,26 +91,83 @@ class Settings(BaseSettings):
     scenarios_center_id: Optional[str] = Field(default=None, alias="SCENARIOS_CENTER_ID")
 
     use_langgraph: bool = Field(default=True, alias="USE_LANGGRAPH")
+    default_max_tool_rounds: int = Field(default=10, alias="DEFAULT_MAX_TOOL_ROUNDS")
 
     prefetch_long_term_memory: bool = Field(default=True, alias="PREFETCH_LONG_TERM_MEMORY")
+    prefetch_memory_limit: int = Field(default=8, alias="PREFETCH_MEMORY_LIMIT")
+    short_term_max_messages: int = Field(default=15, alias="SHORT_TERM_MAX_MESSAGES")
+
     log_redact_user_text: bool = Field(default=True, alias="LOG_REDACT_USER_TEXT")
     tool_max_output_chars: int = Field(default=4000, alias="TOOL_MAX_OUTPUT_CHARS")
     web_search_url: Optional[str] = Field(default=None, alias="WEB_SEARCH_URL")
     web_search_timeout_sec: float = Field(default=15.0, alias="WEB_SEARCH_TIMEOUT_SEC")
     moderation_enabled: bool = Field(default=True, alias="MODERATION_ENABLED")
-
-    # Plan B: если модель не вызвала tools, попробовать JSON из текста ответа
+    moderation_config_path: Optional[Path] = Field(default=None)
+    moderation_blocked_substrings: tuple[str, ...] = Field(default_factory=tuple)
     text_tool_fallback: bool = Field(default=True, alias="TEXT_TOOL_FALLBACK")
 
     @model_validator(mode="after")
-    def _resolve_llm_from_openai_env(self) -> Settings:
-        """Если LLM_* — заглушки, взять OPENAI_API_KEY из env или voice_assistant/.env."""
+    def _load_agent_yaml(self) -> Settings:
+        """Несекретные лимиты из config/agent.yaml (режимы/сценарии — отдельные YAML)."""
+        path = self.project_root / "config" / "agent.yaml"
+        if not path.is_file():
+            return self
+        try:
+            raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except OSError:
+            return self
+        if not isinstance(raw, dict):
+            return self
+        mapping: dict[str, str] = {
+            "short_term_max_messages": "short_term_max_messages",
+            "default_max_tool_rounds": "default_max_tool_rounds",
+            "memory_prefetch_limit": "prefetch_memory_limit",
+        }
+        for yaml_key, attr in mapping.items():
+            if yaml_key in raw and raw[yaml_key] is not None:
+                object.__setattr__(self, attr, raw[yaml_key])
+        rel = raw.get("openai_fallback_env_relative")
+        if rel and not self.llm_fallback_env_file:
+            object.__setattr__(
+                self,
+                "llm_fallback_env_file",
+                str((self.project_root / str(rel)).resolve()),
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _load_moderation_yaml(self) -> Settings:
+        path = self.moderation_config_path or (self.project_root / "config" / "moderation.yaml")
+        if not path.is_file():
+            return self
+        try:
+            raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except OSError:
+            return self
+        if not isinstance(raw, dict):
+            return self
+        items = raw.get("blocked_substrings") or []
+        if isinstance(items, list):
+            phrases = tuple(str(x).strip().lower() for x in items if str(x).strip())
+            object.__setattr__(self, "moderation_blocked_substrings", phrases)
+        return self
+
+    @model_validator(mode="after")
+    def _resolve_llm_credentials(self) -> Settings:
         key = (self.llm_api_key or "").strip()
         if not key or key.lower() in _LLM_KEY_PLACEHOLDERS:
-            alt = os.environ.get("OPENAI_API_KEY", "").strip()
+            alt = (self.openai_api_key or "").strip()
             if not alt or alt.lower() in _LLM_KEY_PLACEHOLDERS:
-                sibling = self.project_root.parent / "voice_assistant" / ".env"
-                alt = (_read_dotenv_value(sibling, "OPENAI_API_KEY") or "").strip()
+                fallback_path = self.llm_fallback_env_file
+                if not fallback_path:
+                    sibling = self.project_root.parent / "voice_assistant" / ".env"
+                    if sibling.is_file():
+                        fallback_path = str(sibling)
+                if fallback_path:
+                    p = Path(fallback_path)
+                    if not p.is_absolute():
+                        p = (self.project_root / p).resolve()
+                    alt = (_read_dotenv_value(p, "OPENAI_API_KEY") or "").strip()
             if alt and alt.lower() not in _LLM_KEY_PLACEHOLDERS:
                 object.__setattr__(self, "llm_api_key", alt)
         if "example.com" in (self.llm_base_url or ""):

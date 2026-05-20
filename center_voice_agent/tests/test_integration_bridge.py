@@ -35,7 +35,6 @@ async def test_agent_session_with_fake_llm(monkeypatch: pytest.MonkeyPatch, tmp_
     coord = SessionCoordinator(gateway, settings=settings)
     stm = ShortTermMemory(max_turns=15)
     session = AgentSession(
-        gateway=gateway,
         coordinator=coord,
         short_term=stm,
         session_id="bridge-test",

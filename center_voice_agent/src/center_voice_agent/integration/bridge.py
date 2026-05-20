@@ -16,7 +16,8 @@ from __future__ import annotations
 import asyncio
 from typing import Optional
 
-from center_voice_agent.agent.gateway import AgentGateway, AgentTurnResult
+from center_voice_agent.agent.gateway import AgentTurnResult
+from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.db.session import init_database
 from center_voice_agent.orchestration.coordinator import SessionCoordinator
@@ -43,14 +44,13 @@ class AgentSession:
     def __init__(
         self,
         *,
-        gateway: AgentGateway,
         coordinator: SessionCoordinator,
         short_term: ShortTermMemory,
         session_id: str,
         child_profile_id: str,
         age_band: Optional[str] = None,
     ) -> None:
-        self._gateway = gateway
+        self._gateway = coordinator.gateway
         self._coord = coordinator
         self._stm = short_term
         self.session_id = session_id
@@ -69,13 +69,12 @@ class AgentSession:
     ) -> AgentSession:
         settings = settings or get_settings()
         await _ensure_db(settings)
-        gateway = AgentGateway(settings=settings)
-        coord = SessionCoordinator(gateway, settings=settings)
-        stm = ShortTermMemory(max_turns=15)
+        container = AppContainer.from_settings(settings)
+        coord = container.build_coordinator()
+        stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
         if scenario_id:
-            await gateway.session_repository.attach_scenario(session_id, scenario_id)
+            await coord.gateway.session_repository.attach_scenario(session_id, scenario_id)
         return cls(
-            gateway=gateway,
             coordinator=coord,
             short_term=stm,
             session_id=session_id,
@@ -96,7 +95,7 @@ class AgentSession:
         return (result.reply_spoken or result.text or "").strip()
 
     async def close(self) -> None:
-        await self._gateway.aclose()
+        await self._coord.gateway.aclose()
 
 
 async def ask_once(
