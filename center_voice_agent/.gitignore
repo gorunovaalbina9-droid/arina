@@ -4,5 +4,6 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-data/agent.db
+data/
+*.db
 *.egg-info/

@@ -2,6 +2,8 @@
 
 **Вы — здесь.** Остальное делает код; вам нужны ключ API и 30–60 минут по чеклисту.
 
+Код на GitHub — ветка **`center-voice-agent`** (не `master`). См. [docs/GIT.md](docs/GIT.md).
+
 ## Шаг 1. Python 3.12
 
 ```powershell

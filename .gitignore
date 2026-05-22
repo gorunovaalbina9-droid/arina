@@ -25,6 +25,58 @@ __pycache__/
 *.swp
 *.swo
 
+# Модели Vosk (скачиваются отдельно)
+voice_assistant/models/
+
+# Установочные/сборочные артефакты (готовые exe/zip — в arina-installer-repo, не в git)
+voice_assistant/build/
+voice_assistant/dist/
+voice_assistant/installer_output/
+voice_assistant/screenshots/
+
+# Бинарники и крупные архивы (GitHub лимит 100 MB)
+*.exe
+*.msi
+*.dmg
+*.7z
+*_deploy.tar.gz
+13_reber_deploy.tar.gz
+
+# Локальная отладка / деплой-черновики
+ssh_debug.txt
+
+# Локальные кэши PyInstaller/сборки
+voice_assistant/**/localpycs/
+voice_assistant/**/__pycache__/
+
+# Нельзя коммитить внутренности вложенного git-репозитория
+arina-installer-repo/.git/
+
+# Финансовый бот — отдельный репозиторий
+finance_bot/
+
+# Локальные базы
+*.db
+*.sqlite
+*.sqlite3
+
+# Локальный экспорт копии репозитория
+export_voice_assistant_repo/
+
+# Тренажёр (для разработки)
+typing_trainer/
+
 # Системные файлы
 .DS_Store
 Thumbs.db
+
+# center_voice_agent: локальная SQLite и runtime data
+center_voice_agent/data/
+
+# Runtime-файлы voice_assistant (локальные)
+voice_assistant/rag_index.json
+voice_assistant/memory_store.json
+voice_assistant/safety_incidents.jsonl
+voice_assistant/observability_events.jsonl
+voice_assistant/*.test.json
+voice_assistant/*.test.jsonl

@@ -6,7 +6,19 @@
 
 ## GitHub
 
-Код агента в монорепо [arina](https://github.com/gorunovaalbina9-droid/arina). **Актуальная ветка:** [`center-voice-agent`](https://github.com/gorunovaalbina9-droid/arina/tree/center-voice-agent/center_voice_agent) (ветка `master` на GitHub может отставать из‑за больших файлов в истории монорепо).
+Код агента в монорепо [arina](https://github.com/gorunovaalbina9-droid/arina).
+
+| Ветка | Назначение |
+|-------|------------|
+| **[`center-voice-agent`](https://github.com/gorunovaalbina9-droid/arina/tree/center-voice-agent/center_voice_agent)** | **Рабочая** — сюда коммитим и откуда клонируем агент |
+| `master` | Весь монорепо; push может падать из‑за установщиков >100 MB в истории — см. [docs/GIT.md](docs/GIT.md) |
+
+```bash
+git clone -b center-voice-agent https://github.com/gorunovaalbina9-droid/arina.git
+cd arina/center_voice_agent
+```
+
+Подробнее: **[docs/GIT.md](docs/GIT.md)** — ветки, PR, `.gitignore`, опциональная очистка истории.
 
 ## Python
 
@@ -92,6 +104,7 @@ python -m center_voice_agent.cli.text_turn --live
 - [MODES.md](docs/MODES.md) / [METHODIST.md](docs/METHODIST.md) — режимы
 - [SCENARIOS.md](docs/SCENARIOS.md) — сценарии-граф
 - [MEMORY_CATEGORIES.md](docs/MEMORY_CATEGORIES.md) — долгая память
+- [GIT.md](docs/GIT.md) — ветки, клонирование, публикация
 
 ## Реализованные цели (кратко)
 
