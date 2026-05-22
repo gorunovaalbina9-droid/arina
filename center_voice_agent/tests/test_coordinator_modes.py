@@ -59,3 +59,45 @@ async def test_coordinator_switches_mode(monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert r2.mode_id == "lesson"
 
     await gw.aclose()
+
+
+@pytest.mark.asyncio
+async def test_coordinator_denied_transition_message(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    db = tmp_path / "deny.db"
+    url = f"sqlite+aiosqlite:///{db.as_posix().replace(chr(92), '/')}"
+    monkeypatch.setenv("DATABASE_URL", url)
+
+    from center_voice_agent.agent.fake_llm import StaticChatModel
+    from center_voice_agent.agent.gateway import AgentGateway
+    from center_voice_agent.context.short_term import ShortTermMemory
+    from center_voice_agent.db.session import init_database
+    from center_voice_agent.orchestration.coordinator import SessionCoordinator
+    from center_voice_agent.settings import get_settings
+
+    get_settings.cache_clear()
+    settings = get_settings()
+    project_root = Path(__file__).resolve().parents[1]
+    await init_database(project_root, settings.database_url)
+
+    gw = AgentGateway(settings=settings, llm=StaticChatModel(responses=["x"]))
+    coord = SessionCoordinator(gw, settings=settings)
+    stm = ShortTermMemory(max_turns=15)
+
+    await coord.handle_user_turn(
+        session_id="s-deny",
+        child_profile_id="c1",
+        user_text="переключись в учебный",
+        short_term=stm,
+    )
+    r = await coord.handle_user_turn(
+        session_id="s-deny",
+        child_profile_id="c1",
+        user_text="переключись в спокойный",
+        short_term=stm,
+    )
+    assert r.mode_id == "lesson"
+    assert "нельзя перейти" in r.text.lower()
+    await gw.aclose()

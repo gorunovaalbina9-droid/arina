@@ -169,18 +169,23 @@ class SessionCoordinator:
                     from_mode=current,
                     to_mode=target,
                 )
-                out = await self.gateway.run_turn(
-                    session_id=session_id,
-                    child_profile_id=child_profile_id,
-                    mode_id=current,
-                    user_text=user_text,
-                    short_term=short_term,
-                    scenario=scenario_rt,
-                    long_term_summary=long_term_summary,
-                    age_band=age_band,
+                cur_name = self._modes.get(current).display_name
+                tgt_name = self._modes.get(target).display_name
+                msg = (
+                    f"Сейчас нельзя перейти в «{tgt_name}» из режима «{cur_name}». "
+                    "Давай продолжим здесь — просто скажи, что хочешь."
                 )
+                short_term.append_user(user_text)
+                short_term.append_assistant(msg)
                 await self._persist_scenario_pointer(session_id, scenario_rt)
-                return out
+                return AgentTurnResult(
+                    text=msg,
+                    reply_spoken=msg,
+                    mode_id=current,
+                    scenario_id=row.scenario_id,
+                    scenario_node_id=row.scenario_node_id,
+                    tool_calls=[],
+                )
 
             prev = current
             await repo.set_mode(session_id, target)

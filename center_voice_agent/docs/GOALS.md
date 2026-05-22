@@ -40,9 +40,14 @@
 ## Блок 5 — режимы
 
 - [x] 5.1 METHODIST.md
-- [ ] 5.2 Стенд hybrid + modes_publish
-- [ ] 5.3 Hot-reload API
-- [ ] 5.4 Четвёртый режим от методиста
+- [x] 5.2 Стенд hybrid — MODES_HYBRID_STAND.md, CHECKLIST, CLI + тест overlay
+- [x] 5.3.1 MODES_RELOAD.md + `AgentSession.reload_modes()`
+- [ ] 5.3.2 HTTP POST /admin/reload_modes (отложено)
+- [x] 5.4.1 режим `calm.yaml` + фразы в mode_commands
+- [x] 5.4.2 `test_modes_schema` + validate на reload
+- [x] 5.4.3 factory — calm без нового tool (tool_ids: [])
+- [~] 5.5.3 hint при запрещённом transition (coordinator)
+- [ ] 5.5.1–5.5.2 NLU / fuzzy (отложено)
 
 ## Блок 6 — сценарии
 

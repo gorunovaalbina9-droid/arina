@@ -1,5 +1,7 @@
 # Режимы наставника (`config/modes/`)
 
+**Стенд hybrid:** [MODES_HYBRID_STAND.md](MODES_HYBRID_STAND.md) · **Reload:** [MODES_RELOAD.md](MODES_RELOAD.md)
+
 Режимы по умолчанию задаются **YAML-файлами** в каталоге `config/modes/`. Имя файла произвольное, важно поле **`id`** (уникально среди всех файлов).
 
 Дополнительно можно хранить опубликованные версии в SQLite (таблица `mode_definitions`, миграция `002_mode_definitions.sql`).
@@ -51,7 +53,7 @@ python -m center_voice_agent.cli.modes_publish path/to/mode.yaml --draft
 2. Класс **`SessionCoordinator`** (`orchestration/coordinator.py`) перед LLM проверяет текст пользователя:
    - словарь `config/voice/mode_commands.yaml`;
    - плюс `voice_aliases` из всех режимов.
-3. Если переход **не разрешён** `allowed_transitions`, режим не меняется, текст уходит в обычный `run_turn`.
+3. Если переход **не разрешён** `allowed_transitions`, режим не меняется; пользователю — короткое объяснение (без вызова LLM на смену).
 
 ## Возраст
 

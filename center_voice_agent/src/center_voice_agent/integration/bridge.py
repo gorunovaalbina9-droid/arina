@@ -94,6 +94,10 @@ class AgentSession:
     def spoken_text(self, result: AgentTurnResult) -> str:
         return (result.reply_spoken or result.text or "").strip()
 
+    async def reload_modes(self) -> list[str]:
+        """Перечитать YAML/БД в этом процессе (после modes_publish)."""
+        return self._coord.gateway.modes.reload_all()
+
     async def close(self) -> None:
         await self._coord.gateway.aclose()
 
