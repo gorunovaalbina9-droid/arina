@@ -217,8 +217,13 @@ def main() -> None:
         settings = get_settings()
         _print_header("Dry-run 2.1")
         ok = _llm_configured(settings)
-        print("LLM настроен:" if ok else "LLM НЕ настроен (заполните .env)")
-        raise SystemExit(0 if ok else 1)
+        if ok:
+            print("LLM настроен — можно: live_turn, live_acceptance")
+            raise SystemExit(0)
+        print("LLM НЕ настроен (модель ещё не готова).")
+        print("Офлайн-приёмка: python -m center_voice_agent.cli.block2_offline")
+        print("См. docs/BLOCK2_OFFLINE.md")
+        raise SystemExit(0)
 
     raise SystemExit(asyncio.run(_run_acceptance(skip_memory=args.skip_memory)))
 

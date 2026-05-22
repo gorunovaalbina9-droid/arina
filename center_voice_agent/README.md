@@ -91,6 +91,7 @@ python -m center_voice_agent.cli.text_turn --live
 | `cli.setup_check` | Проверка Python, .env, БД, режимов |
 | `cli.demo_turn` | Демо с fake LLM (`--live` — реальный API) |
 | `cli.live_acceptance` | Приёмка блока 2 (диалог + память + логи) |
+| `cli.block2_offline` | Блок 2 **без API** (пока нет модели) |
 | `cli.memory_roundtrip` | Память upsert→search без LLM |
 | `cli.live_turn` | Один ход с реальным API |
 | `cli.live_acceptance` | Приёмка блока 2: API + память + логи |

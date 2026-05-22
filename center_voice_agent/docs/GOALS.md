@@ -17,10 +17,11 @@
 ## Блок 2 — реальный LLM
 
 - [x] 2.1 Ключ подхватывается (`LLM_*` или `OPENAI_API_KEY` из `voice_assistant/.env`)
-- [ ] 2.2 `cli.live_acceptance` / `live_turn` — нужен **баланс** на API (сейчас 429 quota)
+- [ ] 2.2 `cli.live_acceptance` / `live_turn` — **ждёт модель и баланс API**
 - [x] 2.3 `cli.memory_roundtrip` — upsert→SQLite→search OK
-- [x] 2.4 Формат логов `correlation_id`, `gateway_in`/`gateway_out` (см. `log_example_gateway.jsonl`)
+- [x] 2.4 Формат логов `correlation_id`, `gateway_in`/`gateway_out` (см. `log_example_gateway.jsonl`; offline: `block2_offline`)
 - [x] 2.5 План B tool-calling (`TEXT_TOOL_FALLBACK`, `text_tool_fallback.py`)
+- [x] 2.offline `cli.block2_offline` — приёмка без API (см. `docs/BLOCK2_OFFLINE.md`)
 
 ## Блок 3 — Git
 

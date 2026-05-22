@@ -28,6 +28,7 @@ dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff>=0.6.0"]
 center-agent-init-db = "center_voice_agent.cli.init_db:main"
 center-agent-demo = "center_voice_agent.cli.demo_turn:main"
 center-agent-setup-check = "center_voice_agent.cli.setup_check:main"
+center-agent-block2-offline = "center_voice_agent.cli.block2_offline:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
