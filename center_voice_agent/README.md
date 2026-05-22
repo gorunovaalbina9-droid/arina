@@ -87,6 +87,7 @@ python -m center_voice_agent.cli.text_turn --live
 | `cli.reload_modes` | Перезагрузка YAML режимов |
 | `cli.modes_publish` | Режим в таблицу `mode_definitions` |
 | `cli.scenarios_publish` | Сценарий в `scenario_publish` |
+| `cli.reload_scenarios` | Сброс кэша scan + список id |
 | `cli.create_child` | Создать `child_profile` |
 | `cli.setup_check` | Проверка Python, .env, БД, режимов |
 | `cli.demo_turn` | Демо с fake LLM (`--live` — реальный API) |

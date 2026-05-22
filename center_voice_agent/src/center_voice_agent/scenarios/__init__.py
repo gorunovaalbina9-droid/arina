@@ -7,6 +7,11 @@ from center_voice_agent.scenarios.graph_engine import (
     load_scenario,
     validate_scenario_graph,
 )
+from center_voice_agent.scenarios.transitions import (
+    normalize_transition_event,
+    parse_when,
+    transition_matches,
+)
 from center_voice_agent.scenarios.loader import (
     clear_scenario_scan_cache,
     load_scenario_by_id,
@@ -25,4 +30,7 @@ __all__ = [
     "publish_scenario_yaml_sync",
     "resolve_scenario_path",
     "validate_scenario_graph",
+    "parse_when",
+    "transition_matches",
+    "normalize_transition_event",
 ]

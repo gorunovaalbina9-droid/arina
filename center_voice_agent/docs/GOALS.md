@@ -53,10 +53,12 @@
 
 - [x] 6.1 check_in_three.yaml
 - [x] 6.3–6.4 Тесты 3 узла и сброс
-- [ ] 6.5 Стенд SCENARIOS hybrid
+- [x] 6.5 hybrid — SCENARIOS_HYBRID_STAND, publish, reload_scenarios, demo_turn --scenario
 - [x] 6.6 Дока scenario_publish vs scenario_definitions
-- [ ] 6.7 keyword when
-- [ ] 6.8 advance в LangGraph
+- [x] 6.7 keyword when — transitions.py, branch_mood.yaml, SCENARIOS_WHEN_SPEC
+- [ ] 6.8 advance в LangGraph (отложено — advance в gateway)
+- [x] 6.9.2 clear_scenario_scan_cache + reload_scenarios CLI
+- [ ] 6.9.1 state_json богатый (отложено)
 
 ## Блок 7 — tools
 

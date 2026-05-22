@@ -8,6 +8,8 @@ import yaml
 import structlog
 from pydantic import BaseModel, Field, model_validator
 
+from center_voice_agent.scenarios.transitions import normalize_transition_event, transition_matches
+
 log = structlog.get_logger(__name__)
 
 InterruptAction = Literal["stay", "reset_to_entry", "goto"]
@@ -50,14 +52,6 @@ class ScenarioGraph(BaseModel):
         if self.entry not in self.nodes:
             raise ValueError(f"entry «{self.entry}» отсутствует в nodes")
         return self
-
-
-def normalize_transition_event(when: str) -> str:
-    """Единое имя события для сопоставления рёбер."""
-    w = (when or "").strip()
-    if w == "user_spoke":
-        return "turn_complete"
-    return w
 
 
 def validate_scenario_graph(graph: ScenarioGraph) -> None:
@@ -142,26 +136,42 @@ class ScenarioRuntime:
             raise KeyError(f"Неизвестный узел графа: {self.current_node_id}")
         return self.graph.nodes[self.current_node_id]
 
-    def advance_on_event(self, event: str) -> bool:
-        """
-        Первое подходящее ребро в порядке YAML: when совпадает с событием или when == always.
-        Возвращает True, если узел сменился.
-        """
+    def _apply_transition(self, tr: ScenarioTransition, *, trigger: str, before: str) -> None:
+        self.current_node_id = tr.next
+        log.info(
+            "scenario_transition",
+            scenario_id=self.graph.id,
+            from_node=before,
+            to_node=self.current_node_id,
+            when=tr.when,
+            trigger=trigger,
+        )
+
+    def advance_on_user_text(self, user_text: str) -> bool:
+        """Переходы when: keyword:... по тексту ребёнка (до LLM)."""
         node = self.current_node()
-        ev = normalize_transition_event(event)
         before = self.current_node_id
         for tr in node.transitions:
-            nw = normalize_transition_event(tr.when)
-            if tr.when.strip() == "always" or nw == ev:
-                self.current_node_id = tr.next
-                log.info(
-                    "scenario_transition",
-                    scenario_id=self.graph.id,
-                    from_node=before,
-                    to_node=self.current_node_id,
-                    when=tr.when,
-                    trigger_event=event,
-                )
+            if not (tr.when or "").strip().lower().startswith("keyword:"):
+                continue
+            if transition_matches(tr.when, event="user_text", user_text=user_text):
+                self._apply_transition(tr, trigger="user_keyword", before=before)
+                return True
+        return False
+
+    def advance_on_event(self, event: str) -> bool:
+        """
+        Первое подходящее ребро: turn_complete / always (не keyword).
+        """
+        node = self.current_node()
+        before = self.current_node_id
+        ev = normalize_transition_event(event)
+        for tr in node.transitions:
+            w = (tr.when or "").strip()
+            if w.lower().startswith("keyword:"):
+                continue
+            if transition_matches(tr.when, event=ev, user_text=""):
+                self._apply_transition(tr, trigger=event, before=before)
                 return True
         return False
 

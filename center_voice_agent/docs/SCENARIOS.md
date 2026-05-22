@@ -23,11 +23,16 @@
 
 ### Переходы (`when`)
 
-- **`turn_complete`** — после ответа ассистента за один ход (основной триггер продвижения).
-- **`user_spoke`** — устаревший алиас к `turn_complete`.
-- **`always`** — первое такое ребро в списке, подходящее при любом событии перехода (осторожно с порядком в YAML).
+См. [SCENARIOS_WHEN_SPEC.md](SCENARIOS_WHEN_SPEC.md).
+
+- **`turn_complete`** — после ответа ассистента за один ход.
+- **`user_spoke`** — алиас к `turn_complete`.
+- **`always`** — при событии turn_complete.
+- **`keyword:слово1,слово2`** — по тексту **ребёнка до LLM** (подстрока).
 
 Порядок в списке важен: срабатывает **первое** совпадение.
+
+**Стенд hybrid:** [SCENARIOS_HYBRID_STAND.md](SCENARIOS_HYBRID_STAND.md).
 
 ### Сброс сценария (`on_interrupt`)
 

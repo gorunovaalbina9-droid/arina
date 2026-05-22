@@ -30,6 +30,7 @@ center-agent-demo = "center_voice_agent.cli.demo_turn:main"
 center-agent-setup-check = "center_voice_agent.cli.setup_check:main"
 center-agent-block2-offline = "center_voice_agent.cli.block2_offline:main"
 center-agent-purge-child = "center_voice_agent.cli.purge_child:main"
+center-agent-reload-scenarios = "center_voice_agent.cli.reload_scenarios:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

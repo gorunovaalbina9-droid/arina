@@ -1,0 +1,44 @@
+# Ветвление по ответу ребёнка (keyword до LLM) + fallback turn_complete
+id: branch_mood
+version: 1
+entry: ask_mood
+default_on_interrupt:
+  action: stay
+nodes:
+  ask_mood:
+    title: Настроение
+    prompt_to_model: |
+      Спроси, как настроение, одним коротким вопросом.
+    transitions:
+      - when: keyword:грустно,плохо,устал,страшно,плохое
+        next: support
+      - when: keyword:хорошо,отлично,рад,весело,классно
+        next: happy
+      - when: turn_complete
+        next: neutral
+  support:
+    title: Поддержка
+    prompt_to_model: |
+      Ребёнку грустно. Скажи, что ты рядом, одной короткой фразой. Без советов взрослого.
+    transitions:
+      - when: turn_complete
+        next: close
+  happy:
+    title: Радость
+    prompt_to_model: |
+      Ребёнку хорошо. Порадуйся вместе с ним, коротко.
+    transitions:
+      - when: turn_complete
+        next: close
+  neutral:
+    title: Нейтрально
+    prompt_to_model: |
+      Ответ неясный. Мягко уточни одним вопросом.
+    transitions:
+      - when: turn_complete
+        next: close
+  close:
+    title: Финал
+    prompt_to_model: |
+      Коротко подведи итог и предложи вернуться к обычному разговору.
+    transitions: []

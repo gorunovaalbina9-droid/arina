@@ -19,7 +19,7 @@ from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.db.session import init_database
 from center_voice_agent.logging_setup import bind_turn_context, new_correlation_id, setup_logging
-from center_voice_agent.scenarios.graph_engine import load_scenario
+from center_voice_agent.scenarios.loader import load_scenario_graph_unified
 from center_voice_agent.settings import get_settings
 
 
@@ -29,6 +29,11 @@ async def main() -> None:
         "--live",
         action="store_true",
         help="Реальный ChatOpenAI из .env / OPENAI_API_KEY (без StaticChatModel)",
+    )
+    parser.add_argument(
+        "--scenario",
+        default="check_in_three",
+        help="id сценария для attach (default: check_in_three)",
     )
     args = parser.parse_args()
 
@@ -56,11 +61,20 @@ async def main() -> None:
     gateway = coord.gateway
 
     stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
-    scenario_path = settings.scenarios_dir / "example_linear.yaml"
-    if scenario_path.is_file():
-        g = load_scenario(scenario_path)
+    scenario_id = args.scenario
+    try:
+        g = load_scenario_graph_unified(
+            settings.scenarios_dir,
+            scenario_id,
+            database_url=settings.database_url,
+            scenarios_source=settings.scenarios_source,
+            scenarios_center_id=settings.scenarios_center_id,
+        )
         await gateway.session_repository.ensure(sid, "child-demo-1", default_mode_id=settings.default_mode_id)
         await gateway.session_repository.attach_scenario(sid, g.id)
+        print("Сценарий:", g.id, "entry:", g.entry)
+    except Exception as exc:
+        print("Сценарий не подключён:", exc)
 
     if not args.live:
         sw = await coord.handle_user_turn(

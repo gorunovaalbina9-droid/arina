@@ -217,6 +217,10 @@ class SessionCoordinator:
             await self._persist_scenario_pointer(session_id, scenario_rt)
             skip_advance = True
 
+        if scenario_rt is not None and not skip_advance:
+            if scenario_rt.advance_on_user_text(user_text):
+                await self._persist_scenario_pointer(session_id, scenario_rt)
+
         out = await self.gateway.run_turn(
             session_id=session_id,
             child_profile_id=child_profile_id,
