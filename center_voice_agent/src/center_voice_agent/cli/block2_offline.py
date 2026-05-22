@@ -25,7 +25,7 @@ from center_voice_agent.agent.fake_llm import StaticChatModel
 from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.db.session import init_database
-from center_voice_agent.logging_setup import bind_turn_context, new_correlation_id, setup_logging
+from center_voice_agent.logging_setup import bind_turn_context, configure_logging, new_correlation_id
 from center_voice_agent.settings import get_settings
 
 
@@ -38,7 +38,7 @@ def _header(title: str) -> None:
 
 async def main() -> None:
     settings = get_settings()
-    setup_logging(json_logs=settings.log_json, level=settings.log_level)
+    configure_logging(settings)
     failures: list[str] = []
 
     _header("Блок 2 offline — без реального LLM")

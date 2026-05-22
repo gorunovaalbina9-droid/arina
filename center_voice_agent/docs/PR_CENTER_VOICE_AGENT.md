@@ -1,9 +1,19 @@
-# PR: center-voice-agent → master
+# PR: `center-voice-agent` → `master`
+
+**Title:** `feat: center_voice_agent — память, режимы, сценарии, модерация, пилот`
 
 ## Summary
 
-- Цели 0–4: каркас агента, память (в т.ч. `session_messages`), режимы hybrid, сценарии keyword/when, модерация, пилот-доки.
-- Рефакторинг: `AppContainer`, `SessionCoordinator`, LangGraph tool-loop, `transitions.py`.
+- **Агент:** LangGraph tool-loop, `SessionCoordinator`, hybrid режимы/сценарии из YAML+SQLite.
+- **Память:** долгая + краткая (`session_messages`, `SHORT_TERM_SOURCE=db`), отчёт родителю CLI.
+- **Безопасность:** модерация in/out, rate limit, audit tools, LIKE escape.
+- **Пилот:** `docs/pilot/*`, `purge_child`, bat-скрипты.
+- **Интеграция:** `voice_assistant/center_agent_bridge.py`, offline fake LLM.
+
+## What's NOT in this PR
+
+- Live LLM / дообученная модель (403 region — отдельно после merge).
+- MCP, RAG, PostgreSQL, полный ASR/TTS E2E.
 
 ## Test plan
 
@@ -18,8 +28,18 @@ python -m center_voice_agent.cli.demo_turn
 python -m center_voice_agent.cli.demo_turn --scenario check_in_three
 ```
 
-Live LLM (после merge, отдельно): `live_turn`, `live_acceptance` — нужен API вне restricted-региона.
+```powershell
+cd voice_assistant
+$env:USE_CENTER_AGENT="true"
+..\center_voice_agent\.venv\Scripts\python.exe voice_loop_text.py
+```
 
-## Scope note
+## After merge
 
-`master` отстаёт на 2 коммита (блоки 6 и 4). После merge — `init_db` для миграции `005_session_messages.sql`.
+1. `init_db` на стенде (миграция `005_session_messages.sql`).
+2. Заполнить `docs/pilot/PASSPORT.md`, `ONCALL.md`.
+3. Live: `LLM_BASE_URL` + `live_acceptance` когда API готов.
+
+## Commits ahead of master
+
+См. `git log master..center-voice-agent` — блоки 4, 6, интеграция voice, и др.

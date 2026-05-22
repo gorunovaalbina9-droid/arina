@@ -161,14 +161,6 @@ class AgentGateway:
         max_rounds = mode.max_tool_rounds or self.settings.default_max_tool_rounds
         max_tool_chars = self.settings.tool_max_output_chars
 
-        log.info(
-            "modes_resolve",
-            session_id=session_id,
-            mode_id=mode_id,
-            display_name=mode.display_name,
-            tool_ids=mode.tool_ids,
-        )
-
         tools = build_tools_for_mode(
             mode.tool_ids,
             memory_repo=self.memory_repository,
@@ -186,6 +178,16 @@ class AgentGateway:
         bind_tools = self._llm_override is None
         llm = llm_base.bind_tools(tools) if bind_tools else llm_base
         tool_map = {t.name: t for t in tools}
+        modes_resolve_ms = int((time.perf_counter() - t0) * 1000)
+
+        log.info(
+            "modes_resolve",
+            session_id=session_id,
+            mode_id=mode_id,
+            display_name=mode.display_name,
+            tool_ids=mode.tool_ids,
+            modes_resolve_ms=modes_resolve_ms,
+        )
 
         scenario_id = scenario.graph.id if scenario else None
         node_id = scenario.current_node_id if scenario else None
@@ -205,7 +207,9 @@ class AgentGateway:
             gw_in["user_text"] = user_text
         log.info("gateway_in", **gw_in)
 
+        t_prefetch0 = time.perf_counter()
         ltm = await self._resolve_long_term_summary(child_profile_id, long_term_summary)
+        memory_prefetch_ms = int((time.perf_counter() - t_prefetch0) * 1000)
         messages = self._prompt_builder.build_messages(
             mode=mode,
             user_text=user_text,
@@ -242,6 +246,9 @@ class AgentGateway:
             scenario_id=scenario_id,
             scenario_node_id=scenario.current_node_id if scenario else None,
             latency_ms=dt_ms,
+            modes_resolve_ms=modes_resolve_ms,
+            memory_prefetch_ms=memory_prefetch_ms,
+            llm_ms=llm_ms,
             llm_and_tools_ms=llm_ms,
             reply_len=len(text),
             tool_calls=len(executed_tools),

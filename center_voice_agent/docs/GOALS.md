@@ -75,9 +75,9 @@
 ## Блок 9 — логи
 
 - [x] 9.2 correlation_id
-- [x] 9.5 security_incident заглушка
-- [ ] 9.1 ротация файлов
-- [ ] 9.3 latency по этапам
+- [x] 9.5 security_incident + jsonl `data/security_incidents.jsonl`
+- [x] 9.1 ротация `logs/agent.log` — `configure_logging`, agent.yaml
+- [x] 9.3 latency — `modes_resolve_ms`, `memory_prefetch_ms`, `llm_ms` в `gateway_out`
 - [ ] 9.4 LangSmith
 
 ## Блок 10 — голос
@@ -85,7 +85,7 @@
 - [x] 10.1–10.2 reply_spoken
 - [x] 10.3 INTEGRATION.md
 - [x] 10.4 text_turn CLI
-- [ ] 10.5–10.7 ASR/TTS E2E
+- [~] 10.5 bridge + `voice_loop_text.py`; [ ] 10.6–10.7 ASR/TTS E2E
 
 ## Блок 11 — прод
 

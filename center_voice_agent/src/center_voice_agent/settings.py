@@ -59,6 +59,11 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     log_json: bool = Field(default=True, alias="LOG_JSON")
+    log_file_path: Optional[Path] = Field(default=None, alias="LOG_FILE_PATH")
+    log_file_max_bytes: int = Field(default=5_000_000, alias="LOG_FILE_MAX_BYTES")
+    log_file_backup_count: int = Field(default=3, alias="LOG_FILE_BACKUP_COUNT")
+    security_incidents_path: Optional[Path] = Field(default=None, alias="SECURITY_INCIDENTS_PATH")
+    security_incidents_max_bytes: int = Field(default=1_000_000, alias="SECURITY_INCIDENTS_MAX_BYTES")
 
     database_url: str = Field(
         default="sqlite+aiosqlite:///./data/agent.db",
@@ -127,10 +132,19 @@ class Settings(BaseSettings):
             "short_term_max_messages": "short_term_max_messages",
             "default_max_tool_rounds": "default_max_tool_rounds",
             "memory_prefetch_limit": "prefetch_memory_limit",
+            "log_file_path": "log_file_path",
+            "log_file_max_bytes": "log_file_max_bytes",
+            "log_file_backup_count": "log_file_backup_count",
+            "security_incidents_path": "security_incidents_path",
+            "security_incidents_max_bytes": "security_incidents_max_bytes",
         }
+        path_keys = {"log_file_path", "security_incidents_path"}
         for yaml_key, attr in mapping.items():
             if yaml_key in raw and raw[yaml_key] is not None:
-                object.__setattr__(self, attr, raw[yaml_key])
+                val = raw[yaml_key]
+                if yaml_key in path_keys:
+                    val = Path(str(val))
+                object.__setattr__(self, attr, val)
         rel = raw.get("openai_fallback_env_relative")
         if rel and not self.llm_fallback_env_file:
             object.__setattr__(
