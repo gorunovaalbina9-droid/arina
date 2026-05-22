@@ -85,4 +85,12 @@
 
 ## Блок 12 — пилот
 
-- [ ] 12.1–12.6
+- [x] 12.1.2 критерии успеха/стоп + метрики (`docs/pilot/`)
+- [~] 12.1.1 паспорт — шаблон, заполнить центру
+- [x] 12.2.2 удаление ПДн — `cli.purge_child`, DATA_RETENTION.md
+- [~] 12.2.1 память для юриста — шаблон, подпись юриста
+- [x] 12.3.1 педагог + `scripts/start_pilot_text.bat`
+- [x] 12.3.2 методист пилота — METHODIST_PILOT.md
+- [~] 12.4 on-call — ONCALL.md + INCIDENT_LOG (контакты заполнить)
+- [x] 12.5 откат — ROLLBACK.md + `pilot_backup_db.bat`
+- [x] 12.6 форма ОС — FEEDBACK.md

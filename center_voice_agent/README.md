@@ -106,6 +106,7 @@ python -m center_voice_agent.cli.text_turn --live
 - [SCENARIOS.md](docs/SCENARIOS.md) — сценарии-граф
 - [MEMORY_CATEGORIES.md](docs/MEMORY_CATEGORIES.md) — долгая память
 - [GIT.md](docs/GIT.md) — ветки, клонирование, публикация
+- [pilot/README.md](docs/pilot/README.md) — блок 12: пилот с детьми (организация)
 
 ## Реализованные цели (кратко)
 

@@ -1,5 +1,7 @@
 # Чеклист пилота с детьми
 
+**Организация (блок 12):** [pilot/README.md](pilot/README.md) — паспорт, юрист, педагог, on-call, откат, ОС.
+
 Перед первым реальным занятием отметьте пункты.
 
 ## Техника
@@ -29,5 +31,12 @@
 
 ## Организация
 
+- [ ] [PASSPORT.md](pilot/PASSPORT.md) заполнен (кто, где, дети, даты)
+- [ ] [SUCCESS_CRITERIA.md](pilot/SUCCESS_CRITERIA.md) разослан команде
+- [ ] [MEMORY_FOR_LAWYER.md](pilot/MEMORY_FOR_LAWYER.md) согласован с юристом
+- [ ] [DATA_RETENTION.md](pilot/DATA_RETENTION.md) + бэкап `scripts/pilot_backup_db.bat`
+- [ ] [PEDAGOG.md](pilot/PEDAGOG.md) + репетиция `scripts/start_pilot_text.bat`
+- [ ] [ONCALL.md](pilot/ONCALL.md) — контакты заполнены
+- [ ] [ROLLBACK.md](pilot/ROLLBACK.md) — стабильный коммит в паспорте
 - [ ] Ответственный на занятии (взрослый)
 - [ ] Контакт техподдержки / разработчика
