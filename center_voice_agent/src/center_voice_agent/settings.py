@@ -103,7 +103,11 @@ class Settings(BaseSettings):
     web_search_timeout_sec: float = Field(default=15.0, alias="WEB_SEARCH_TIMEOUT_SEC")
     moderation_enabled: bool = Field(default=True, alias="MODERATION_ENABLED")
     moderation_config_path: Optional[Path] = Field(default=None)
-    moderation_blocked_substrings: tuple[str, ...] = Field(default_factory=tuple)
+    moderation_blocked_input_substrings: tuple[str, ...] = Field(default_factory=tuple)
+    moderation_blocked_output_substrings: tuple[str, ...] = Field(default_factory=tuple)
+    rate_limit_enabled: bool = Field(default=True, alias="RATE_LIMIT_ENABLED")
+    rate_limit_per_minute: int = Field(default=20, alias="RATE_LIMIT_PER_MINUTE")
+    rate_limit_per_hour: int = Field(default=120, alias="RATE_LIMIT_PER_HOUR")
     text_tool_fallback: bool = Field(default=True, alias="TEXT_TOOL_FALLBACK")
 
     @model_validator(mode="after")
@@ -146,10 +150,24 @@ class Settings(BaseSettings):
             return self
         if not isinstance(raw, dict):
             return self
-        items = raw.get("blocked_substrings") or []
-        if isinstance(items, list):
-            phrases = tuple(str(x).strip().lower() for x in items if str(x).strip())
-            object.__setattr__(self, "moderation_blocked_substrings", phrases)
+
+        def _phrases(key: str) -> tuple[str, ...]:
+            items = raw.get(key) or []
+            if not isinstance(items, list):
+                return ()
+            return tuple(str(x).strip().lower() for x in items if str(x).strip())
+
+        inp = _phrases("blocked_input_substrings")
+        out = _phrases("blocked_output_substrings")
+        legacy = _phrases("blocked_substrings")
+        if not inp and legacy:
+            inp = legacy
+        if not out and legacy:
+            out = legacy
+        if inp:
+            object.__setattr__(self, "moderation_blocked_input_substrings", inp)
+        if out:
+            object.__setattr__(self, "moderation_blocked_output_substrings", out)
         return self
 
     @model_validator(mode="after")

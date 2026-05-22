@@ -48,6 +48,7 @@ async def _tools_node(state: LlmToolGraphState, config: RunnableConfig) -> dict[
     tool_map: dict[str, Any] = configurable["tool_map"]
     max_chars = int(configurable.get("tool_max_output_chars", 4000))
     child_profile_id: str = configurable["child_profile_id"]
+    session_id: str | None = configurable.get("session_id")
     last = state["messages"][-1]
     if not isinstance(last, AIMessage) or not last.tool_calls:
         return {}
@@ -65,6 +66,7 @@ async def _tools_node(state: LlmToolGraphState, config: RunnableConfig) -> dict[
             args,
             child_profile_id=child_profile_id,
             max_chars=max_chars,
+            session_id=session_id,
         )
         tool_msgs.append(ToolMessage(content=out, tool_call_id=tid))
         batch_logs.append({"name": name, "args": args, "id": tid})
@@ -116,6 +118,7 @@ async def run_llm_tools_langgraph(
     max_tool_rounds: int,
     child_profile_id: str,
     tool_max_output_chars: int = 4000,
+    session_id: str | None = None,
 ) -> tuple[str, list[dict[str, Any]], int]:
     """Возвращает (текст ответа, список tool-вызовов, число завершённых «батчей» tools)."""
     graph = _compiled_graph()
@@ -133,6 +136,7 @@ async def run_llm_tools_langgraph(
                 "tool_map": tool_map,
                 "tool_max_output_chars": tool_max_output_chars,
                 "child_profile_id": child_profile_id,
+                "session_id": session_id,
             },
             "recursion_limit": max(60, max_r * 8 + 12),
         },

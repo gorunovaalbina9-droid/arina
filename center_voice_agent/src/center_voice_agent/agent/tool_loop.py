@@ -48,6 +48,7 @@ async def run_tool_loop(
             max_tool_rounds=max_r,
             tool_max_output_chars=max_chars,
             child_profile_id=child_profile_id,
+            session_id=session_id,
         )
         if rounds >= max_r:
             log.warning("gateway_tool_limit", session_id=session_id, rounds=rounds)
@@ -82,7 +83,12 @@ async def run_tool_loop(
             if not isinstance(args, dict):
                 args = dict(args) if hasattr(args, "items") else {}
             out = await invoke_tool(
-                tool_map, name, args, child_profile_id=child_profile_id, max_chars=max_chars
+                tool_map,
+                name,
+                args,
+                child_profile_id=child_profile_id,
+                max_chars=max_chars,
+                session_id=session_id,
             )
             messages.append(ToolMessage(content=out, tool_call_id=tid))
             executed.append({"name": name, "args": args, "id": tid})

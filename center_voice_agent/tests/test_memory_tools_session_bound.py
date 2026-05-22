@@ -37,3 +37,40 @@ async def test_memory_tools_ignore_llm_child_id_override(tmp_path, monkeypatch: 
     empty = await repo.search("child-hacker", "session-bound", limit=5)
     assert "session-bound" not in (empty or "")
     await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_memory_tool_override_logs_warning(tmp_path: Path) -> None:
+    from unittest.mock import patch
+
+    from center_voice_agent.db.session import create_engine_and_session_factory, run_migrations
+    from center_voice_agent.tools.runtime import invoke_tool
+
+    dbfile = tmp_path / "audit.db"
+    url = f"sqlite+aiosqlite:///{dbfile.as_posix().replace(chr(92), '/')}"
+    engine, session_factory = create_engine_and_session_factory(url)
+    import shutil
+
+    project = tmp_path / "proj"
+    real_root = Path(__file__).resolve().parents[1]
+    shutil.copytree(real_root / "db" / "migrations", project / "db" / "migrations")
+    (project / "config").mkdir(parents=True, exist_ok=True)
+    await run_migrations(engine, project)
+    repo = LongTermMemoryRepository(session_factory)
+    tools = build_tools_for_mode(
+        ["memory_upsert"],
+        memory_repo=repo,
+        child_profile_id="child-real",
+    )
+    with patch("center_voice_agent.tools.runtime.log") as mock_log:
+        await invoke_tool(
+            {tools[0].name: tools[0]},
+            "memory_upsert",
+            {"category": "hobby", "value_text": "x", "child_profile_id": "child-hacker"},
+            child_profile_id="child-real",
+            max_chars=4000,
+            session_id="sess-audit",
+        )
+        mock_log.warning.assert_called_once()
+        assert mock_log.warning.call_args.kwargs.get("reason") == "tool_child_id_override"
+    await engine.dispose()

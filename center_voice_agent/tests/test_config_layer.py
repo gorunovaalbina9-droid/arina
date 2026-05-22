@@ -23,7 +23,8 @@ def test_agent_yaml_overrides_limits(tmp_path: Path) -> None:
     )
     assert s.short_term_max_messages == 7
     assert s.prefetch_memory_limit == 3
-    assert "тест-блок" in s.moderation_blocked_substrings
+    assert "тест-блок" in s.moderation_blocked_input_substrings
+    assert "тест-блок" in s.moderation_blocked_output_substrings
 
 
 def test_no_os_environ_in_package_modules() -> None:

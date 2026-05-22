@@ -10,6 +10,7 @@ from center_voice_agent.logging_setup import log_security_incident
 from center_voice_agent.modes.commands import load_mode_commands, try_parse_mode_switch
 from center_voice_agent.modes.registry import ModeRegistry
 from center_voice_agent.security.moderation import check_input_blocked, check_output_blocked
+from center_voice_agent.security.rate_limit import check_rate_limit
 from center_voice_agent.scenarios.graph_engine import ScenarioRuntime
 from center_voice_agent.scenarios.loader import load_scenario_graph_unified
 from center_voice_agent.scenarios.phrases import load_scenario_commands, try_parse_scenario_reset
@@ -104,9 +105,35 @@ class SessionCoordinator:
         assert row is not None
         current = row.mode_id
 
-        blocked_phrases = self.settings.moderation_blocked_substrings
+        if self.settings.rate_limit_enabled:
+            rl = check_rate_limit(
+                session_id,
+                per_minute=self.settings.rate_limit_per_minute,
+                per_hour=self.settings.rate_limit_per_hour,
+            )
+            if rl:
+                log_security_incident(
+                    reason=rl,
+                    session_id=session_id,
+                    child_profile_id=child_profile_id,
+                    direction="rate_limit",
+                )
+                msg = "Подожди немного — слишком много сообщений подряд. Попробуй через минуту."
+                short_term.append_user(user_text)
+                short_term.append_assistant(msg)
+                return AgentTurnResult(
+                    text=msg,
+                    reply_spoken=msg,
+                    mode_id=current,
+                    scenario_id=row.scenario_id,
+                    scenario_node_id=row.scenario_node_id,
+                    tool_calls=[],
+                )
+
+        blocked_in = self.settings.moderation_blocked_input_substrings
+        blocked_out = self.settings.moderation_blocked_output_substrings
         if self.settings.moderation_enabled:
-            blocked = check_input_blocked(user_text, blocked=blocked_phrases)
+            blocked = check_input_blocked(user_text, blocked=blocked_in)
             if blocked:
                 log_security_incident(
                     reason=blocked,
@@ -198,7 +225,7 @@ class SessionCoordinator:
         )
         await self._persist_scenario_pointer(session_id, scenario_rt)
         if self.settings.moderation_enabled:
-            ob = check_output_blocked(out.text, blocked=blocked_phrases)
+            ob = check_output_blocked(out.text, blocked=blocked_out)
             if ob:
                 log_security_incident(
                     reason=ob,

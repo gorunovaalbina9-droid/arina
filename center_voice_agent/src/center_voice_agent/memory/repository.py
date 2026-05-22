@@ -74,9 +74,9 @@ class LongTermMemoryRepository:
                     WHERE child_profile_id = :child
                       AND (
                         :wide = 1
-                        OR value_text LIKE :like
-                        OR IFNULL(key, '') LIKE :like
-                        OR category LIKE :like
+                        OR value_text LIKE :like ESCAPE '\\'
+                        OR IFNULL(key, '') LIKE :like ESCAPE '\\'
+                        OR category LIKE :like ESCAPE '\\'
                       )
                     ORDER BY updated_at DESC
                     LIMIT :limit

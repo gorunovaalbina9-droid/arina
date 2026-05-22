@@ -94,3 +94,12 @@
 - [~] 12.4 on-call — ONCALL.md + INCIDENT_LOG (контакты заполнить)
 - [x] 12.5 откат — ROLLBACK.md + `pilot_backup_db.bat`
 - [x] 12.6 форма ОС — FEEDBACK.md
+
+## Блок B — безопасность и модерация
+
+- [x] B.1.1–B.1.2 `moderation.yaml` input/output, Settings, coordinator
+- [x] B.1.3 тесты `test_moderation` (+ rate, output block)
+- [x] B.1.4 `docs/MODERATION.md`
+- [x] B.2.1 rate limit (`security/rate_limit.py`, coordinator)
+- [x] B.2.2 audit `tool_child_id_override` в `invoke_tool`
+- [x] B.3.1 тест LIKE escape в `test_memory_repository`

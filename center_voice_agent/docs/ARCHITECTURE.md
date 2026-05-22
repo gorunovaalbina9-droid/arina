@@ -35,7 +35,7 @@ AppContainer — БД, memory_repository, session_repository, ModeRegistry
 ## Что настраивать без Python
 
 - `config/agent.yaml` — лимиты памяти, short_term, tool rounds
-- `config/moderation.yaml` — фразы блокировки (модерация)
+- `config/moderation.yaml` — фразы блокировки вход/выход (см. [MODERATION.md](MODERATION.md))
 - `config/modes/*.yaml` — режимы, tool_ids, промпты
 - `config/scenarios/*.yaml` — графы
 - `config/voice/*.yaml` — фразы смены режима / сброса сценария
