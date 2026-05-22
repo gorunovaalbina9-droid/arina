@@ -16,7 +16,7 @@
 | Канал | ☐ текст (`text_turn`) ☐ голос (`voice_assistant`) |
 | Сценарий | ☐ только `dialog` ☐ `check_in_three` |
 | `DEFAULT_MODE_ID` | `dialog` |
-| Стабильная версия кода (git) | `018ff24` или новее с `center-voice-agent` |
+| Стабильная версия кода (git) | `ec21388` (ветка `center-voice-agent`) |
 
 ## Роли
 

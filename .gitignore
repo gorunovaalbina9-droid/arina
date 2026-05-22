@@ -34,6 +34,9 @@ voice_assistant/dist/
 voice_assistant/installer_output/
 voice_assistant/screenshots/
 
+# Локальный деплой / сторонние пакеты (не в git)
+13_reber/
+
 # Бинарники и крупные архивы (GitHub лимит 100 MB)
 *.exe
 *.msi

@@ -67,11 +67,17 @@ class AgentSession:
         age_band: Optional[str] = None,
         scenario_id: Optional[str] = None,
         settings: Optional[Settings] = None,
+        offline_llm: bool = False,
     ) -> AgentSession:
         settings = settings or get_settings()
         await _ensure_db(settings)
         container = AppContainer.from_settings(settings)
-        coord = container.build_coordinator()
+        llm = None
+        if offline_llm:
+            from center_voice_agent.agent.fake_llm import StaticChatModel
+
+            llm = StaticChatModel(reply="Привет! Я Арина. Рада тебя слышать.")
+        coord = container.build_coordinator(llm=llm)
         await coord.gateway.session_repository.ensure(
             session_id, child_profile_id, default_mode_id=settings.default_mode_id
         )
@@ -117,6 +123,7 @@ async def ask_once(
     child_profile_id: str = "child-default",
     age_band: Optional[str] = "5-6",
     scenario_id: Optional[str] = None,
+    offline_llm: bool = False,
 ) -> str:
     """Один вопрос — один ответ (сессия создаётся и закрывается)."""
     session = await AgentSession.open(
@@ -124,6 +131,7 @@ async def ask_once(
         child_profile_id=child_profile_id,
         age_band=age_band,
         scenario_id=scenario_id,
+        offline_llm=offline_llm,
     )
     try:
         result = await session.ask(user_text)
@@ -139,6 +147,7 @@ def ask_once_sync(
     child_profile_id: str = "child-default",
     age_band: Optional[str] = "5-6",
     scenario_id: Optional[str] = None,
+    offline_llm: bool = False,
 ) -> str:
     """Синхронная обёртка для GUI (voice_assistant и т.п.)."""
     return asyncio.run(
@@ -148,5 +157,6 @@ def ask_once_sync(
             child_profile_id=child_profile_id,
             age_band=age_band,
             scenario_id=scenario_id,
+            offline_llm=offline_llm,
         )
     )
