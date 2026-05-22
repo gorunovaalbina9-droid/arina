@@ -35,7 +35,9 @@
 - [x] 4.1 PREFETCH_LONG_TERM_MEMORY
 - [x] 4.2 LOG_REDACT_USER_TEXT
 - [x] 4.3 MEMORY_CATEGORIES.md
-- [ ] 4.4 session_messages (опционально)
+- [x] 4.4 session_messages — миграция 005, repo, `SHORT_TERM_SOURCE=db`, SHORT_TERM_DB.md
+- [x] 4.5.1 LIKE escape в memory_search (тест + MEMORY_CATEGORIES)
+- [x] 4.6.1 Отчёт прогресса для родителя — CLI `parent_progress_report`, PARENT_PROGRESS_REPORT.md
 
 ## Блок 5 — режимы
 

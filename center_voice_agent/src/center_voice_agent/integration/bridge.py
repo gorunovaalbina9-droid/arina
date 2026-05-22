@@ -19,6 +19,7 @@ from typing import Optional
 from center_voice_agent.agent.gateway import AgentTurnResult
 from center_voice_agent.composition.container import AppContainer
 from center_voice_agent.context.short_term import ShortTermMemory
+from center_voice_agent.context.short_term_factory import build_short_term_memory
 from center_voice_agent.db.session import init_database
 from center_voice_agent.orchestration.coordinator import SessionCoordinator
 from center_voice_agent.settings import Settings, get_settings
@@ -71,7 +72,14 @@ class AgentSession:
         await _ensure_db(settings)
         container = AppContainer.from_settings(settings)
         coord = container.build_coordinator()
-        stm = ShortTermMemory(max_turns=settings.short_term_max_messages)
+        await coord.gateway.session_repository.ensure(
+            session_id, child_profile_id, default_mode_id=settings.default_mode_id
+        )
+        stm = await build_short_term_memory(
+            session_id,
+            settings=settings,
+            messages_repo=container.session_messages_repository,
+        )
         if scenario_id:
             await coord.gateway.session_repository.attach_scenario(session_id, scenario_id)
         return cls(

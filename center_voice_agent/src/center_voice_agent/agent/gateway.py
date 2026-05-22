@@ -76,6 +76,10 @@ class AgentGateway:
         return self._container.session_repository
 
     @property
+    def session_messages_repository(self):
+        return self._container.session_messages_repository
+
+    @property
     def memory_repository(self) -> LongTermMemoryRepository:
         return self._container.memory_repository
 

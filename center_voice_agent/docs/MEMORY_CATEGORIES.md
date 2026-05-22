@@ -14,4 +14,6 @@
 
 Инструменты: `memory_upsert`, `memory_search`. При `PREFETCH_LONG_TERM_MEMORY=true` последние записи подмешиваются в системный промпт до вызова LLM.
 
-В `memory_search` символы `%` и `_` в запросе экранируются (SQL `LIKE … ESCAPE '\'`).
+В `memory_search` символы `%` и `_` в запросе экранируются (SQL `LIKE … ESCAPE '\'`). Тест: `test_memory_search_like_escape` в `tests/test_memory_repository.py`.
+
+Краткая память в БД: [SHORT_TERM_DB.md](SHORT_TERM_DB.md). Отчёт родителю: [PARENT_PROGRESS_REPORT.md](PARENT_PROGRESS_REPORT.md).

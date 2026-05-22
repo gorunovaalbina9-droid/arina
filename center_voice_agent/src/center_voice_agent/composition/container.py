@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from center_voice_agent.agent.prompt_builder import TurnPromptBuilder
 from center_voice_agent.age_bands.loader import load_age_bands
 from center_voice_agent.db.session import create_engine_and_session_factory, ensure_sqlite_parent_dir
+from center_voice_agent.context.session_messages_repo import SessionMessagesRepository
 from center_voice_agent.memory.repository import LongTermMemoryRepository
 from center_voice_agent.modes.registry import ModeRegistry
 from center_voice_agent.orchestration.coordinator import SessionCoordinator
@@ -28,6 +29,7 @@ class AppContainer:
     mode_registry: ModeRegistry
     memory_repository: LongTermMemoryRepository
     session_repository: SessionStateRepository
+    session_messages_repository: SessionMessagesRepository
     prompt_builder: TurnPromptBuilder
     age_bands: dict
     _engine: Optional[AsyncEngine] = None
@@ -56,6 +58,7 @@ class AppContainer:
             mode_registry=modes,
             memory_repository=memory,
             session_repository=SessionStateRepository(session_factory),
+            session_messages_repository=SessionMessagesRepository(session_factory),
             prompt_builder=TurnPromptBuilder(age_bands=bands),
             age_bands=bands,
             _engine=engine,

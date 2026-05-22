@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     prefetch_long_term_memory: bool = Field(default=True, alias="PREFETCH_LONG_TERM_MEMORY")
     prefetch_memory_limit: int = Field(default=8, alias="PREFETCH_MEMORY_LIMIT")
     short_term_max_messages: int = Field(default=15, alias="SHORT_TERM_MAX_MESSAGES")
+    short_term_source: Literal["memory", "db"] = Field(default="memory", alias="SHORT_TERM_SOURCE")
 
     log_redact_user_text: bool = Field(default=True, alias="LOG_REDACT_USER_TEXT")
     tool_max_output_chars: int = Field(default=4000, alias="TOOL_MAX_OUTPUT_CHARS")

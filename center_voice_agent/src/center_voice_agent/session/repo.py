@@ -109,3 +109,25 @@ class SessionStateRepository:
     async def attach_scenario(self, session_id: str, scenario_id: str, *, node_id: Optional[str] = None) -> None:
         """Привязать активный сценарий к сессии (node_id NULL = entry при следующей загрузке)."""
         await self.update_scenario_pointer(session_id, scenario_id=scenario_id, scenario_node_id=node_id)
+
+    async def latest_scenario_for_child(
+        self, child_profile_id: str
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Последний scenario_id / scenario_node_id по любой сессии ребёнка."""
+        async with self._session_factory() as session:
+            r = await session.execute(
+                text(
+                    """
+                    SELECT scenario_id, scenario_node_id
+                    FROM session_state
+                    WHERE child_profile_id = :child
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                    """
+                ),
+                {"child": child_profile_id},
+            )
+            row = r.mappings().first()
+        if not row:
+            return None, None
+        return row.get("scenario_id"), row.get("scenario_node_id")

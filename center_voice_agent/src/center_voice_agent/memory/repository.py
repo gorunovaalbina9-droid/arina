@@ -171,3 +171,36 @@ class LongTermMemoryRepository:
             await session.commit()
             log.info("memory_upsert_insert", memory_id=vid, category=category)
             return "Запись добавлена."
+
+    async def list_entries(
+        self,
+        child_profile_id: str,
+        category: str,
+        *,
+        limit: int = 50,
+    ) -> list[MemoryEntryRow]:
+        """Список записей долгой памяти по категории (для отчётов вне агента)."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT id, category, key, value_text, updated_at
+                    FROM long_term_memory_entries
+                    WHERE child_profile_id = :child AND category = :cat
+                    ORDER BY updated_at DESC
+                    LIMIT :limit
+                    """
+                ),
+                {"child": child_profile_id, "cat": category, "limit": limit},
+            )
+            rows = result.mappings().all()
+        return [
+            MemoryEntryRow(
+                id=str(r["id"]),
+                category=str(r["category"]),
+                key=r["key"],
+                value_text=str(r["value_text"]),
+                updated_at=str(r["updated_at"]),
+            )
+            for r in rows
+        ]

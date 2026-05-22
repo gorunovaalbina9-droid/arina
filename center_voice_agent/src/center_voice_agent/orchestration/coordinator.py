@@ -6,6 +6,7 @@ import structlog
 
 from center_voice_agent.agent.gateway import AgentGateway, AgentTurnResult
 from center_voice_agent.context.short_term import ShortTermMemory
+from center_voice_agent.context.short_term_factory import persist_turn_messages
 from center_voice_agent.logging_setup import log_security_incident
 from center_voice_agent.modes.commands import load_mode_commands, try_parse_mode_switch
 from center_voice_agent.modes.registry import ModeRegistry
@@ -73,6 +74,20 @@ class SessionCoordinator:
             return ScenarioRuntime.resume(graph, row.scenario_node_id)
         return None
 
+    async def _persist_short_term_turn(
+        self,
+        session_id: str,
+        user_text: str,
+        assistant_text: str,
+    ) -> None:
+        await persist_turn_messages(
+            session_id,
+            user_text,
+            assistant_text,
+            settings=self.settings,
+            messages_repo=self.gateway.session_messages_repository,
+        )
+
     async def _persist_scenario_pointer(
         self,
         session_id: str,
@@ -121,6 +136,7 @@ class SessionCoordinator:
                 msg = "Подожди немного — слишком много сообщений подряд. Попробуй через минуту."
                 short_term.append_user(user_text)
                 short_term.append_assistant(msg)
+                await self._persist_short_term_turn(session_id, user_text, msg)
                 return AgentTurnResult(
                     text=msg,
                     reply_spoken=msg,
@@ -144,6 +160,7 @@ class SessionCoordinator:
                 msg = "Давай поговорим о чём-нибудь другом — я не могу ответить на такой запрос."
                 short_term.append_user(user_text)
                 short_term.append_assistant(msg)
+                await self._persist_short_term_turn(session_id, user_text, msg)
                 return AgentTurnResult(
                     text=msg,
                     reply_spoken=msg,
@@ -177,6 +194,7 @@ class SessionCoordinator:
                 )
                 short_term.append_user(user_text)
                 short_term.append_assistant(msg)
+                await self._persist_short_term_turn(session_id, user_text, msg)
                 await self._persist_scenario_pointer(session_id, scenario_rt)
                 return AgentTurnResult(
                     text=msg,
@@ -199,6 +217,7 @@ class SessionCoordinator:
             )
             short_term.append_user(user_text)
             short_term.append_assistant(msg)
+            await self._persist_short_term_turn(session_id, user_text, msg)
             await self._persist_scenario_pointer(session_id, scenario_rt)
             return AgentTurnResult(
                 text=msg,
@@ -253,4 +272,6 @@ class SessionCoordinator:
                     mode_changed=out.mode_changed,
                     previous_mode_id=out.previous_mode_id,
                 )
+        reply = (out.reply_spoken or out.text or "").strip()
+        await self._persist_short_term_turn(session_id, user_text, reply)
         return out
