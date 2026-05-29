@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import sys
 from pathlib import Path
 
@@ -11,10 +12,32 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from center_voice_agent.admin.publish import publish_scenario_yaml
+from center_voice_agent.composition.runtime import get_process_container
 from center_voice_agent.logging_setup import setup_logging
-from center_voice_agent.scenarios.db_source import publish_scenario_yaml_sync
 from center_voice_agent.scenarios.loader import clear_scenario_scan_cache
 from center_voice_agent.settings import get_settings
+
+
+async def _publish_async(
+    *,
+    raw: str,
+    scenario_id: str,
+    center_id: str | None,
+    status: str,
+    subject: str | None,
+    age_band: str | None,
+) -> str:
+    container = await get_process_container()
+    return await publish_scenario_yaml(
+        container.engine,
+        config_yaml=raw,
+        scenario_id=scenario_id,
+        center_id=center_id,
+        status=status,
+        subject=subject,
+        age_band=age_band,
+    )
 
 
 def main() -> None:
@@ -44,14 +67,15 @@ def main() -> None:
     if not sid:
         raise SystemExit("Укажите id в YAML или флаг --scenario-id")
     status = "draft" if args.draft else "published"
-    rid = publish_scenario_yaml_sync(
-        settings.database_url,
-        config_yaml=raw,
-        scenario_id=str(sid),
-        center_id=args.center_id,
-        status=status,
-        subject=args.subject,
-        age_band=args.age_band,
+    rid = asyncio.run(
+        _publish_async(
+            raw=raw,
+            scenario_id=str(sid),
+            center_id=args.center_id,
+            status=status,
+            subject=args.subject,
+            age_band=args.age_band,
+        )
     )
     clear_scenario_scan_cache()
     print(f"OK row_id={rid} scenario_id={sid} status={status}")

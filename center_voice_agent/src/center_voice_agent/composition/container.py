@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from langchain_core.language_models import BaseChatModel
@@ -17,6 +17,7 @@ from center_voice_agent.context.session_messages_repo import SessionMessagesRepo
 from center_voice_agent.memory.repository import LongTermMemoryRepository
 from center_voice_agent.modes.registry import ModeRegistry
 from center_voice_agent.orchestration.coordinator import SessionCoordinator
+from center_voice_agent.security.rate_limit import InMemoryRateLimiter, RateLimiter
 from center_voice_agent.session.repo import SessionStateRepository
 from center_voice_agent.settings import Settings, get_settings
 
@@ -32,6 +33,7 @@ class AppContainer:
     session_messages_repository: SessionMessagesRepository
     prompt_builder: TurnPromptBuilder
     age_bands: dict
+    rate_limiter: RateLimiter = field(default_factory=InMemoryRateLimiter)
     _engine: Optional[AsyncEngine] = None
 
     @classmethod
@@ -75,7 +77,14 @@ class AppContainer:
             gateway,
             settings=self.settings,
             mode_registry=self.mode_registry,
+            rate_limiter=self.rate_limiter,
         )
+
+    @property
+    def engine(self) -> AsyncEngine:
+        if self._engine is None:
+            raise RuntimeError("AppContainer engine не инициализирован")
+        return self._engine
 
     async def aclose(self) -> None:
         if self._engine is not None:

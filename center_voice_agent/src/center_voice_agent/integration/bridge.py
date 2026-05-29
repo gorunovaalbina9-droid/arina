@@ -1,14 +1,17 @@
 """
 Простой мост для внешних программ: текст пользователя → ответ наставника.
 
+Для голосового GUI: один раз AgentSession.open(), много ask(), в конце close().
+ask_once / ask_once_sync — только отладка (создают сессию на каждый вызов).
+
 Пример (async):
     session = await AgentSession.open(child_profile_id="child-1", age_band="5-6")
     answer = await session.ask("Привет!")
     await session.close()
 
 Пример (sync, для GUI):
-    from center_voice_agent.integration.bridge import ask_once
-    text = ask_once("Привет!", session_id="room-1", child_profile_id="child-1")
+    from center_voice_agent.integration.bridge import ask_once_sync
+    text = ask_once_sync("Привет!", session_id="room-1", child_profile_id="child-1")
 """
 
 from __future__ import annotations
@@ -18,25 +21,14 @@ from typing import Optional
 
 from center_voice_agent.agent.gateway import AgentTurnResult
 from center_voice_agent.composition.container import AppContainer
+from center_voice_agent.composition.runtime import (
+    get_process_container,
+    shutdown_process_container,
+)
 from center_voice_agent.context.short_term import ShortTermMemory
 from center_voice_agent.context.short_term_factory import build_short_term_memory
-from center_voice_agent.db.session import init_database
 from center_voice_agent.orchestration.coordinator import SessionCoordinator
 from center_voice_agent.settings import Settings, get_settings
-
-_init_lock = asyncio.Lock()
-_db_ready = False
-
-
-async def _ensure_db(settings: Settings) -> None:
-    global _db_ready
-    if _db_ready:
-        return
-    async with _init_lock:
-        if _db_ready:
-            return
-        await init_database(settings.project_root, settings.database_url)
-        _db_ready = True
 
 
 class AgentSession:
@@ -46,14 +38,18 @@ class AgentSession:
         self,
         *,
         coordinator: SessionCoordinator,
+        container: AppContainer,
         short_term: ShortTermMemory,
         session_id: str,
         child_profile_id: str,
         age_band: Optional[str] = None,
+        owns_container: bool = False,
     ) -> None:
         self._gateway = coordinator.gateway
         self._coord = coordinator
+        self._container = container
         self._stm = short_term
+        self._owns_container = owns_container
         self.session_id = session_id
         self.child_profile_id = child_profile_id
         self.age_band = age_band
@@ -70,8 +66,7 @@ class AgentSession:
         offline_llm: bool = False,
     ) -> AgentSession:
         settings = settings or get_settings()
-        await _ensure_db(settings)
-        container = AppContainer.from_settings(settings)
+        container = await get_process_container(settings)
         llm = None
         if offline_llm:
             from center_voice_agent.agent.fake_llm import StaticChatModel
@@ -90,10 +85,47 @@ class AgentSession:
             await coord.gateway.session_repository.attach_scenario(session_id, scenario_id)
         return cls(
             coordinator=coord,
+            container=container,
             short_term=stm,
             session_id=session_id,
             child_profile_id=child_profile_id,
             age_band=age_band,
+            owns_container=False,
+        )
+
+    @classmethod
+    async def open_with_container(
+        cls,
+        container: AppContainer,
+        *,
+        session_id: str,
+        child_profile_id: str,
+        age_band: Optional[str] = None,
+        scenario_id: Optional[str] = None,
+        llm=None,
+        owns_container: bool = False,
+    ) -> AgentSession:
+        """Для тестов и кастомной сборки."""
+        settings = container.settings
+        coord = container.build_coordinator(llm=llm)
+        await coord.gateway.session_repository.ensure(
+            session_id, child_profile_id, default_mode_id=settings.default_mode_id
+        )
+        stm = await build_short_term_memory(
+            session_id,
+            settings=settings,
+            messages_repo=container.session_messages_repository,
+        )
+        if scenario_id:
+            await coord.gateway.session_repository.attach_scenario(session_id, scenario_id)
+        return cls(
+            coordinator=coord,
+            container=container,
+            short_term=stm,
+            session_id=session_id,
+            child_profile_id=child_profile_id,
+            age_band=age_band,
+            owns_container=owns_container,
         )
 
     async def ask(self, user_text: str) -> AgentTurnResult:
@@ -113,7 +145,8 @@ class AgentSession:
         return self._coord.gateway.modes.reload_all()
 
     async def close(self) -> None:
-        await self._coord.gateway.aclose()
+        if self._owns_container:
+            await self._container.aclose()
 
 
 async def ask_once(
@@ -125,7 +158,7 @@ async def ask_once(
     scenario_id: Optional[str] = None,
     offline_llm: bool = False,
 ) -> str:
-    """Один вопрос — один ответ (сессия создаётся и закрывается)."""
+    """Один вопрос — один ответ (сессия создаётся; engine процесса не закрывается)."""
     session = await AgentSession.open(
         session_id=session_id,
         child_profile_id=child_profile_id,
@@ -160,3 +193,11 @@ def ask_once_sync(
             offline_llm=offline_llm,
         )
     )
+
+
+__all__ = [
+    "AgentSession",
+    "ask_once",
+    "ask_once_sync",
+    "shutdown_process_container",
+]

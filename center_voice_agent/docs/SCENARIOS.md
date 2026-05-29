@@ -78,7 +78,7 @@ python -m center_voice_agent.cli.scenarios_publish path/to/scenario.yaml --cente
 
 Загрузка в рантайме: **`load_scenario_graph_unified(...)`** в `scenarios/loader.py` (используется в **`SessionCoordinator`**).
 
-Таблица **`scenario_definitions`** из миграции `001_init.sql` (поле `graph_yaml_path`) **не используется** текущим кодом загрузки; рабочий контур — файлы и/или **`scenario_publish`**.
+Таблица **`scenario_definitions`** из `001_init.sql` **устарела**: миграция `006_scenario_definitions_legacy.sql` переименовывает её в **`scenario_definitions_legacy`**. Рабочий контур — файлы и/или **`scenario_publish`**.
 
 ## LangGraph в шлюзе
 

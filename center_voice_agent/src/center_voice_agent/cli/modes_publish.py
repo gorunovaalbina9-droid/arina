@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import sys
 from pathlib import Path
 
@@ -11,9 +12,27 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from center_voice_agent.admin.publish import publish_mode_yaml
+from center_voice_agent.composition.runtime import get_process_container
 from center_voice_agent.logging_setup import setup_logging
-from center_voice_agent.modes.db_source import publish_mode_yaml_sync
 from center_voice_agent.settings import get_settings
+
+
+async def _publish_async(
+    *,
+    raw: str,
+    mode_id: str,
+    center_id: str | None,
+    status: str,
+) -> str:
+    container = await get_process_container()
+    return await publish_mode_yaml(
+        container.engine,
+        config_yaml=raw,
+        mode_id=mode_id,
+        center_id=center_id,
+        status=status,
+    )
 
 
 def main() -> None:
@@ -41,12 +60,13 @@ def main() -> None:
     if not mid:
         raise SystemExit("Укажите id в YAML или флаг --mode-id")
     status = "draft" if args.draft else "published"
-    rid = publish_mode_yaml_sync(
-        settings.database_url,
-        config_yaml=raw,
-        mode_id=str(mid),
-        center_id=args.center_id,
-        status=status,
+    rid = asyncio.run(
+        _publish_async(
+            raw=raw,
+            mode_id=str(mid),
+            center_id=args.center_id,
+            status=status,
+        )
     )
     print(f"OK row_id={rid} mode_id={mid} status={status}")
 

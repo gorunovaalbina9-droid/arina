@@ -31,15 +31,20 @@ async def test_agent_session_with_fake_llm(monkeypatch: pytest.MonkeyPatch, tmp_
     )
     await init_database(settings.project_root, settings.database_url)
 
-    gateway = AgentGateway(settings=settings, llm=StaticChatModel(responses=["ответ моста"]))
+    from center_voice_agent.composition.container import AppContainer
+
+    container = AppContainer.from_settings(settings)
+    gateway = AgentGateway(container=container, llm=StaticChatModel(responses=["ответ моста"]))
     coord = SessionCoordinator(gateway, settings=settings)
     stm = ShortTermMemory(max_turns=15)
     session = AgentSession(
         coordinator=coord,
+        container=container,
         short_term=stm,
         session_id="bridge-test",
         child_profile_id="child-b",
         age_band="5-6",
+        owns_container=True,
     )
 
     result = await session.ask("привет")

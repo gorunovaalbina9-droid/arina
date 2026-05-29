@@ -85,7 +85,7 @@ async def _tools_node(state: LlmToolGraphState, config: RunnableConfig) -> dict[
 _compiled: Any | None = None
 
 
-def _compiled_graph() -> Any:
+def get_compiled_graph() -> Any:
     global _compiled
     if _compiled is None:
         g = StateGraph(LlmToolGraphState)
@@ -96,6 +96,15 @@ def _compiled_graph() -> Any:
         g.add_edge("tools", "agent")
         _compiled = g.compile()
     return _compiled
+
+
+def reset_compiled_graph_for_tests() -> None:
+    global _compiled
+    _compiled = None
+
+
+def _compiled_graph() -> Any:
+    return get_compiled_graph()
 
 
 def final_assistant_text(messages: list[BaseMessage]) -> str:

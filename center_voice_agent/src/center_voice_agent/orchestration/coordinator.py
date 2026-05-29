@@ -11,7 +11,7 @@ from center_voice_agent.logging_setup import log_security_incident
 from center_voice_agent.modes.commands import load_mode_commands, try_parse_mode_switch
 from center_voice_agent.modes.registry import ModeRegistry
 from center_voice_agent.security.moderation import check_input_blocked, check_output_blocked
-from center_voice_agent.security.rate_limit import check_rate_limit
+from center_voice_agent.security.rate_limit import RateLimiter, get_default_rate_limiter
 from center_voice_agent.scenarios.graph_engine import ScenarioRuntime
 from center_voice_agent.scenarios.loader import load_scenario_graph_unified
 from center_voice_agent.scenarios.phrases import load_scenario_commands, try_parse_scenario_reset
@@ -33,10 +33,12 @@ class SessionCoordinator:
         *,
         settings: Optional[Settings] = None,
         mode_registry: Optional[ModeRegistry] = None,
+        rate_limiter: Optional[RateLimiter] = None,
     ) -> None:
         self.gateway = gateway
         self.settings = settings or get_settings()
         self._modes = mode_registry or gateway.modes
+        self._rate_limiter = rate_limiter or get_default_rate_limiter()
         self._commands_path = self.settings.voice_commands_path
         self._scenario_commands_path = self.settings.scenario_commands_path
 
@@ -121,7 +123,7 @@ class SessionCoordinator:
         current = row.mode_id
 
         if self.settings.rate_limit_enabled:
-            rl = check_rate_limit(
+            rl = self._rate_limiter.check(
                 session_id,
                 per_minute=self.settings.rate_limit_per_minute,
                 per_hour=self.settings.rate_limit_per_hour,
