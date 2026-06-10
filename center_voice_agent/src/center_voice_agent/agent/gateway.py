@@ -100,7 +100,12 @@ class AgentGateway:
         session_id: str,
         max_tool_chars: int,
     ) -> tuple[str, list[dict[str, Any]]]:
-        parsed = parse_text_tool_calls(text)
+        parsed = parse_text_tool_calls(
+            text,
+            mode=self.settings.text_tool_fallback_mode,
+            allowed_tools=tuple(tool_map.keys()),
+        )
+        parsed = [c for c in parsed if c["name"] in tool_map]
         if not parsed:
             return text, []
         log.info(
@@ -167,7 +172,7 @@ class AgentGateway:
             provider=self._llm_provider,
         )
         bind_tools = self._llm_override is None
-        llm = llm_base.bind_tools(tools) if bind_tools else llm_base
+        llm = llm_base.bind_tools(tools) if tools else llm_base
         tool_map = {t.name: t for t in tools}
         modes_resolve_ms = int((time.perf_counter() - t0) * 1000)
 

@@ -52,7 +52,7 @@ async def run_tool_loop(
         )
         if rounds >= max_r:
             log.warning("gateway_tool_limit", session_id=session_id, rounds=rounds)
-        if bind_tools and tool_map and not executed and text_fallback and settings.text_tool_fallback:
+        if bind_tools and tool_map and not executed and text_fallback and settings.text_tool_fallback_mode != "off":
             text, fb = await text_fallback(
                 llm, messages, text, tool_map, child_profile_id, session_id, max_chars
             )
@@ -106,7 +106,7 @@ async def run_tool_loop(
     else:
         text = str(ai_msg.content) if ai_msg.content else ""
 
-    if bind_tools and tool_map and not executed and text_fallback and settings.text_tool_fallback:
+    if bind_tools and tool_map and not executed and text_fallback and settings.text_tool_fallback_mode != "off":
         text, fb = await text_fallback(
             llm, messages, text, tool_map, child_profile_id, session_id, max_chars
         )

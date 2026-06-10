@@ -1,6 +1,6 @@
 """
 LangGraph: узлы agent <-> tools до исчерпания tool_calls или лимита раундов.
-Сценарий (advance по узлу) остаётся в шлюзе после графа — см. AgentGateway.run_turn.
+Граф компилируется на каждый вызов (без process-wide singleton) — изоляция тестов.
 """
 
 from __future__ import annotations
@@ -82,29 +82,24 @@ async def _tools_node(state: LlmToolGraphState, config: RunnableConfig) -> dict[
     }
 
 
-_compiled: Any | None = None
+def compile_llm_tool_graph() -> Any:
+    """Собрать свежий compiled graph (без глобального кэша)."""
+    g = StateGraph(LlmToolGraphState)
+    g.add_node("agent", _agent_node)
+    g.add_node("tools", _tools_node)
+    g.set_entry_point("agent")
+    g.add_conditional_edges("agent", _route_after_llm, {"tools": "tools", "end": END})
+    g.add_edge("tools", "agent")
+    return g.compile()
 
 
 def get_compiled_graph() -> Any:
-    global _compiled
-    if _compiled is None:
-        g = StateGraph(LlmToolGraphState)
-        g.add_node("agent", _agent_node)
-        g.add_node("tools", _tools_node)
-        g.set_entry_point("agent")
-        g.add_conditional_edges("agent", _route_after_llm, {"tools": "tools", "end": END})
-        g.add_edge("tools", "agent")
-        _compiled = g.compile()
-    return _compiled
+    """Обратная совместимость: каждый вызов — новый compile."""
+    return compile_llm_tool_graph()
 
 
 def reset_compiled_graph_for_tests() -> None:
-    global _compiled
-    _compiled = None
-
-
-def _compiled_graph() -> Any:
-    return get_compiled_graph()
+    """No-op: singleton удалён, оставлено для старых тестов/conftest."""
 
 
 def final_assistant_text(messages: list[BaseMessage]) -> str:
@@ -128,11 +123,12 @@ async def run_llm_tools_langgraph(
     child_profile_id: str,
     tool_max_output_chars: int = 4000,
     session_id: str | None = None,
+    graph: Any | None = None,
 ) -> tuple[str, list[dict[str, Any]], int]:
     """Возвращает (текст ответа, список tool-вызовов, число завершённых «батчей» tools)."""
-    graph = _compiled_graph()
+    compiled = graph or compile_llm_tool_graph()
     max_r = max(1, int(max_tool_rounds))
-    out = await graph.ainvoke(
+    out = await compiled.ainvoke(
         {
             "messages": list(messages),
             "tool_batches": 0,

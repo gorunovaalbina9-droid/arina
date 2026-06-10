@@ -129,7 +129,11 @@ class Settings(BaseSettings):
     log_redact_tool_args: bool = Field(default=True, alias="LOG_REDACT_TOOL_ARGS")
     require_parent_consent: bool = Field(default=False, alias="REQUIRE_PARENT_CONSENT")
     compliance_llm_region: Optional[str] = Field(default=None, alias="COMPLIANCE_LLM_REGION")
-    text_tool_fallback: bool = Field(default=True, alias="TEXT_TOOL_FALLBACK")
+    text_tool_fallback: bool = Field(default=False, alias="TEXT_TOOL_FALLBACK")
+    text_tool_fallback_mode: Literal["off", "fenced_only", "strict", "permissive"] = Field(
+        default="off",
+        alias="TEXT_TOOL_FALLBACK_MODE",
+    )
 
     @model_validator(mode="after")
     def _load_agent_yaml(self) -> Settings:
@@ -211,6 +215,14 @@ class Settings(BaseSettings):
             object.__setattr__(self, "moderation_blocked_input_patterns", inp_pat)
         if out_pat:
             object.__setattr__(self, "moderation_blocked_output_patterns", out_pat)
+        return self
+
+    @model_validator(mode="after")
+    def _resolve_text_tool_fallback_mode(self) -> Settings:
+        if not self.text_tool_fallback:
+            object.__setattr__(self, "text_tool_fallback_mode", "off")
+        elif self.text_tool_fallback_mode == "off":
+            object.__setattr__(self, "text_tool_fallback_mode", "fenced_only")
         return self
 
     @model_validator(mode="after")
