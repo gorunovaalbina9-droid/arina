@@ -9,6 +9,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from center_voice_agent.composition.locks import get_publish_lock
+from center_voice_agent.db.dialect import detect_dialect, now_sql
+
+
+def _ts(engine: AsyncEngine) -> str:
+    return now_sql(detect_dialect(str(engine.url)))
 
 
 async def publish_mode_yaml(
@@ -20,6 +25,7 @@ async def publish_mode_yaml(
     status: str = "published",
 ) -> str:
     rid = str(uuid.uuid4())
+    ts = _ts(engine)
     async with get_publish_lock():
         async with engine.begin() as conn:
             if status == "published":
@@ -42,13 +48,13 @@ async def publish_mode_yaml(
             nxt = int(cur.scalar() or 1)
             await conn.execute(
                 text(
-                    """
+                    f"""
                     INSERT INTO mode_definitions (
                         id, mode_id, center_id, status, version, config_yaml, updated_at, created_at
                     )
                     VALUES (
                         :id, :mid, :cid, :st, :ver, :yaml,
-                        datetime('now'), datetime('now')
+                        {ts}, {ts}
                     )
                     """
                 ),
@@ -75,6 +81,7 @@ async def publish_scenario_yaml(
     age_band: Optional[str] = None,
 ) -> str:
     rid = str(uuid.uuid4())
+    ts = _ts(engine)
     async with get_publish_lock():
         async with engine.begin() as conn:
             if status == "published":
@@ -97,14 +104,14 @@ async def publish_scenario_yaml(
             nxt = int(cur.scalar() or 1)
             await conn.execute(
                 text(
-                    """
+                    f"""
                     INSERT INTO scenario_publish (
                         id, scenario_id, center_id, status, version, config_yaml,
                         subject, age_band, updated_at, created_at
                     )
                     VALUES (
                         :id, :sid, :cid, :st, :ver, :yaml, :subj, :band,
-                        datetime('now'), datetime('now')
+                        {ts}, {ts}
                     )
                     """
                 ),

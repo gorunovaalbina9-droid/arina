@@ -142,7 +142,15 @@ class AgentSession:
 
     async def reload_modes(self) -> list[str]:
         """Перечитать YAML/БД в этом процессе (после modes_publish)."""
-        return self._coord.gateway.modes.reload_all()
+        from center_voice_agent.composition.reload import reload_catalog
+
+        return reload_catalog(self._container).mode_ids
+
+    async def reload_catalog(self, *, clear_settings_cache: bool = False):
+        """Режимы + scan сценариев (+ опционально get_settings cache)."""
+        from center_voice_agent.composition.reload import reload_catalog
+
+        return reload_catalog(self._container, clear_settings_cache=clear_settings_cache)
 
     async def close(self) -> None:
         if self._owns_container:

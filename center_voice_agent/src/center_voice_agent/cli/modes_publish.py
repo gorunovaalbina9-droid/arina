@@ -13,6 +13,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from center_voice_agent.admin.publish import publish_mode_yaml
+from center_voice_agent.composition.reload import reload_process_catalog
 from center_voice_agent.composition.runtime import get_process_container
 from center_voice_agent.logging_setup import setup_logging
 from center_voice_agent.settings import get_settings
@@ -68,6 +69,11 @@ def main() -> None:
             status=status,
         )
     )
+
+    async def _reload() -> None:
+        await reload_process_catalog()
+
+    asyncio.run(_reload())
     print(f"OK row_id={rid} mode_id={mid} status={status}")
 
 

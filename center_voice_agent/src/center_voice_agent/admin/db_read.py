@@ -13,7 +13,21 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 def _to_sync_database_url(database_url: str) -> str:
     if database_url.startswith("sqlite+aiosqlite:///"):
         return "sqlite:///" + database_url[len("sqlite+aiosqlite:///") :]
+    if database_url.startswith("postgresql+asyncpg://"):
+        return "postgresql://" + database_url[len("postgresql+asyncpg://") :]
+    if database_url.startswith("postgresql+psycopg://"):
+        return "postgresql://" + database_url[len("postgresql+psycopg://") :]
     return database_url
+
+
+def _db_available(database_url: str) -> bool:
+    from center_voice_agent.db.dialect import detect_dialect
+    from center_voice_agent.db.sqlite_path import sqlite_file_path_from_url
+
+    if detect_dialect(database_url) == "postgresql":
+        return bool((database_url or "").strip())
+    path = sqlite_file_path_from_url(database_url)
+    return path is not None and path.is_file()
 
 
 def _pick_mode_rows(
@@ -227,10 +241,7 @@ def fetch_published_mode_yamls_sync(
 ) -> dict[str, str]:
     from sqlalchemy import create_engine
 
-    from center_voice_agent.db.sqlite_path import sqlite_file_path_from_url
-
-    path = sqlite_file_path_from_url(database_url)
-    if path is None or not path.is_file():
+    if not _db_available(database_url):
         return {}
     eng = create_engine(_to_sync_database_url(database_url))
     try:
@@ -248,10 +259,7 @@ def fetch_published_scenario_yamls_sync(
 ) -> dict[str, str]:
     from sqlalchemy import create_engine
 
-    from center_voice_agent.db.sqlite_path import sqlite_file_path_from_url
-
-    path = sqlite_file_path_from_url(database_url)
-    if path is None or not path.is_file():
+    if not _db_available(database_url):
         return {}
     eng = create_engine(_to_sync_database_url(database_url))
     try:

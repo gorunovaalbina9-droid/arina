@@ -25,6 +25,7 @@ dependencies = [
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff>=0.6.0"]
 api = ["fastapi>=0.115.0", "uvicorn[standard]>=0.32.0"]
 redis = ["redis>=5.0"]
+postgres = ["asyncpg>=0.29", "psycopg[binary]>=3.1"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -38,6 +39,7 @@ center-agent-setup-check = "center_voice_agent.cli.setup_check:main"
 center-agent-block2-offline = "center_voice_agent.cli.block2_offline:main"
 center-agent-purge-child = "center_voice_agent.cli.purge_child:main"
 center-agent-reload-scenarios = "center_voice_agent.cli.reload_scenarios:main"
+center-agent-reload-catalog = "center_voice_agent.cli.reload_catalog:main"
 center-agent-parent-progress = "center_voice_agent.cli.parent_progress_report:main"
 center-agent-api = "center_voice_agent.api.main:main"
 
