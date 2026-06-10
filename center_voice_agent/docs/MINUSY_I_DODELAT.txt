@@ -1,100 +1,43 @@
 МИНУСЫ И ЧТО НАДО ДОДЕЛАТЬ — center_voice_agent
-(по code review, май 2026; обновлено после закрытия блоков 8–35)
+(по code review, май 2026; backlog P0–P2 закрыт)
 
 ================================================================================
-ОРГАНИЗАЦИЯ КОДА
+СТАТУС BACKLOG P0–P2 — ЗАКРЫТО
 ================================================================================
 
-1. Всё в одном пакете — api/ и voice/integration выделены; CLI отдельно.
-   [частично закрыто]
+P0 — ПЕРЕД ПИЛОТОМ
+1. Модерация (regex, HTTP API, эскалация) — security/moderation_engine.py ✅
+2. web_search off по умолчанию — settings.web_search_enabled=False ✅
+3. Retention — security/retention.py, LOG_* settings, center-agent-retention-purge ✅
+4. AppContainer на процесс — composition/runtime.py, API lifespan ✅
 
-2. Два мира БД — runtime async + sync publish; риск блокировок остаётся.
-   [P1: единый async publish]
+P1 — АРХИТЕКТУРА
+5. api/ + SessionCoordinator — api/routes/, orchestration/coordinator.py ✅
+6. LLMProvider — agent/llm_provider.py ✅
+7. schema_migrations — db/migrations_runner.py ✅
+8. scenario_definitions — 006 rename + 007 DROP legacy ✅
+9. Async publish + lock — admin/publish.py + composition/locks.py ✅
 
-3. AppContainer на процесс — get_process_container() для API/voice.
-   [✅ P0 закрыто]
+P2 — ПРОДУКТ
+10. Redis rate limit — security/rate_limit_redis.py (STM: memory/db, не Redis) ✅ partial*
+11. RAG + MCP — tools/impl/rag_search.py, center-agent-mcp ✅
+12. NLU смены режима — modes/nlu.py ✅
+13. CLI entry points — pyproject [project.scripts] (все основные) ✅
+14. state_json + semantic — semantic: переходы, fuzzy transitions.py ✅
+15. PostgreSQL — dialect helpers, repos без datetime('now')/rowid ✅
 
-4. Rate limit Redis + LangGraph без singleton.
-   [✅ закрыто]
-
-5. Tools через registry — tools/registry.py, MCP stdio.
-   [✅ закрыто]
-
-6. Мёртвая таблица scenario_definitions — legacy 006, не используется в runtime.
-   [документировано в db/migrations/README.md]
-
-7. DX pytest — pythonpath в pyproject; запуск из корня center_voice_agent.
-
-
-================================================================================
-АРХИТЕКТУРА И ДОМЕН (8–15) — ЗАКРЫТО
-================================================================================
-
-8.  AgentGateway — prefetch/метрики в orchestration/prefetch.py, advance в coordinator.
-9.  HTTP/WebSocket — api/routes/turn.py, ws.py; docs/API.md.
-10. LLMProvider — agent/llm_provider.py.
-11. Coordinator — явные repos, не gateway.session_messages_repository.
-12. Смена режима — LLM + system_note при отказе; NLU modes/nlu.py (п.33).
-13. Сценарии — keyword + mood/state_json переходы.
-14. state_json — используется в session_state и переходах.
-15. STM — 15 пар ходов (ShortTermMemory max_turns=15).
-
+* Redis STM — roadmap; rate limit Redis готов через RATE_LIMIT_BACKEND=redis
 
 ================================================================================
-БЕЗОПАСНОСТЬ И COMPLIANCE (16–20) — ЗАКРЫТО
+ДАЛЬШЕ (P3+)
 ================================================================================
 
-16. Модерация — regex, HTTP API, эскалация (moderation_engine.py).
-17. Rate limit — Redis опционально (rate_limit_redis.py).
-18. web_search — выключен по умолчанию; whitelist режимов.
-19. Redact tool args — security/redact.py.
-20. 152-ФЗ — docs/compliance/152FZ.md, consent hook, COMPLIANCE_LLM_REGION.
-
-
-================================================================================
-ИНФРАСТРУКТУРА И ДАННЫЕ (21–24) — ЗАКРЫТО
-================================================================================
-
-21. schema_migrations + безопасный SQL split (migrations_runner.py).
-22. 003 — таблица учёта, не пропуск (db/migrations/README.md).
-23. postgresql/ и sqlite/ каталоги миграций.
-24. POST /admin/reload + composition/reload.py.
-
-
-================================================================================
-LLM И ИНСТРУМЕНТЫ (25–27) — ЗАКРЫТО
-================================================================================
-
-25. text_tool_fallback — режим off по умолчанию (settings).
-26. StaticChatModel tool_calls + tests/test_static_llm_tools.py.
-27. LangGraph compile_llm_tool_graph() без singleton.
-
-
-================================================================================
-ПРОДУКТ И SCOPE (28–35) — ЗАКРЫТО / ЗАДОКУМЕНТИРОВАНО
-================================================================================
-
-28. STT/TTS — вне пакета; docs/VOICE_INTEGRATION.md + integration/bridge.py.
-29. Веб / ЛК — out of scope; docs/SCOPE.md.
-30. RAG — keyword stub rag_search + config/rag/ (RAG_SEARCH_ENABLED=false).
-31. MCP — tools/registry.py + center-agent-mcp + docs/MCP_TOOLS.md.
-32. PostgreSQL SQL + Alembic baseline; docs/DATABASE.md.
-33. NLU смены режима — modes/nlu.py (exact + fuzzy difflib).
-34. HTTP API — POST /turn, WS /ws/session, GET /info; docs/API.md.
-35. Пилот — docs/pilot/PILOT_READY.md (P0 чек-лист после security/infra).
-
-
-================================================================================
-ПРИОРИТЕТ: ДАЛЬШЕ (P2+)
-================================================================================
-
-- Единый async publish режимов/сценариев
 - Векторный RAG и ingestion методичек
+- Redis-backed short-term memory
+- ML-модерация продукта
 - Веб-кабинет родителя (отдельный репо)
-- Смысловые переходы сценариев через LLM
-- Полноценная ML-модерация продукта
+- LLM-оценка переходов сценариев (не только fuzzy semantic:)
 
 ================================================================================
-Путь к проекту на ноутбуке:
-c:\Users\Альбина\глебебля2\center_voice_agent
+Путь: c:\Users\Альбина\глебебля2\center_voice_agent
 ================================================================================

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from center_voice_agent.agent.prompt_builder import TurnPromptBuilder
 from center_voice_agent.age_bands.loader import load_age_bands
+from center_voice_agent.db.dialect import detect_dialect
 from center_voice_agent.db.session import create_engine_and_session_factory, ensure_sqlite_parent_dir
 from center_voice_agent.context.session_messages_repo import SessionMessagesRepository
 from center_voice_agent.memory.repository import LongTermMemoryRepository
@@ -47,7 +48,8 @@ class AppContainer:
         s = settings or get_settings()
         ensure_sqlite_parent_dir(s.database_url)
         engine, session_factory = create_engine_and_session_factory(s.database_url)
-        memory = memory_repository or LongTermMemoryRepository(session_factory)
+        dialect = detect_dialect(s.database_url)
+        memory = memory_repository or LongTermMemoryRepository(session_factory, dialect=dialect)
         modes = ModeRegistry(
             s.modes_dir,
             project_root=s.project_root,
@@ -61,8 +63,8 @@ class AppContainer:
             settings=s,
             mode_registry=modes,
             memory_repository=memory,
-            session_repository=SessionStateRepository(session_factory),
-            session_messages_repository=SessionMessagesRepository(session_factory),
+            session_repository=SessionStateRepository(session_factory, dialect=dialect),
+            session_messages_repository=SessionMessagesRepository(session_factory, dialect=dialect),
             prompt_builder=TurnPromptBuilder(age_bands=bands),
             age_bands=bands,
             rate_limiter=limiter,

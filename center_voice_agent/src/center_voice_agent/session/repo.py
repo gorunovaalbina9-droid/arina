@@ -7,6 +7,8 @@ from typing import Any, Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from center_voice_agent.db.dialect import DbDialect, now_sql
+
 
 @dataclass
 class SessionRow:
@@ -21,8 +23,14 @@ class SessionRow:
 class SessionStateRepository:
     """Сессия: текущий режим и привязка к ребёнку (таблица session_state)."""
 
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        *,
+        dialect: DbDialect = "sqlite",
+    ) -> None:
         self._session_factory = session_factory
+        self._now = now_sql(dialect)
 
     async def get(self, session_id: str) -> Optional[SessionRow]:
         async with self._session_factory() as session:
@@ -61,9 +69,9 @@ class SessionStateRepository:
         async with self._session_factory() as session:
             await session.execute(
                 text(
-                    """
+                    f"""
                     INSERT INTO session_state (session_id, child_profile_id, mode_id, scenario_id, scenario_node_id, state_json, updated_at)
-                    VALUES (:sid, :child, :mode, NULL, NULL, :sj, datetime('now'))
+                    VALUES (:sid, :child, :mode, NULL, NULL, :sj, {self._now})
                     """
                 ),
                 {"sid": session_id, "child": child_profile_id, "mode": default_mode_id, "sj": state},
@@ -77,8 +85,8 @@ class SessionStateRepository:
         async with self._session_factory() as session:
             await session.execute(
                 text(
-                    """
-                    UPDATE session_state SET mode_id = :mode, updated_at = datetime('now')
+                    f"""
+                    UPDATE session_state SET mode_id = :mode, updated_at = {self._now}
                     WHERE session_id = :sid
                     """
                 ),
@@ -96,9 +104,9 @@ class SessionStateRepository:
         async with self._session_factory() as session:
             await session.execute(
                 text(
-                    """
+                    f"""
                     UPDATE session_state
-                    SET scenario_id = :sc, scenario_node_id = :node, updated_at = datetime('now')
+                    SET scenario_id = :sc, scenario_node_id = :node, updated_at = {self._now}
                     WHERE session_id = :sid
                     """
                 ),
@@ -114,9 +122,9 @@ class SessionStateRepository:
         async with self._session_factory() as session:
             await session.execute(
                 text(
-                    """
+                    f"""
                     UPDATE session_state
-                    SET state_json = :sj, updated_at = datetime('now')
+                    SET state_json = :sj, updated_at = {self._now}
                     WHERE session_id = :sid
                     """
                 ),

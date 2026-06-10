@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from center_voice_agent.api.routes.admin import router as admin_router
 from center_voice_agent.api.routes.info import router as info_router
 from center_voice_agent.api.routes.turn import router as turn_router
 from center_voice_agent.api.routes.ws import router as ws_router
+from center_voice_agent.composition.runtime import shutdown_process_container
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    yield
+    await shutdown_process_container()
 
 
 def create_app() -> FastAPI:
@@ -13,6 +22,7 @@ def create_app() -> FastAPI:
         title="center_voice_agent",
         description="HTTP/WebSocket API голосового наставника",
         version="0.1.0",
+        lifespan=_lifespan,
     )
     app.include_router(turn_router)
     app.include_router(ws_router)

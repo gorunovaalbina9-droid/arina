@@ -35,16 +35,26 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 
 [project.scripts]
-center-agent-init-db = "center_voice_agent.cli.init_db:main"
-center-agent-demo = "center_voice_agent.cli.demo_turn:main"
+center-agent-init-db = "center_voice_agent.cli.run_async:init_db_entry"
+center-agent-demo = "center_voice_agent.cli.run_async:demo_turn_entry"
 center-agent-setup-check = "center_voice_agent.cli.setup_check:main"
-center-agent-block2-offline = "center_voice_agent.cli.block2_offline:main"
+center-agent-block2-offline = "center_voice_agent.cli.run_async:block2_offline_entry"
 center-agent-purge-child = "center_voice_agent.cli.purge_child:main"
 center-agent-reload-scenarios = "center_voice_agent.cli.reload_scenarios:main"
 center-agent-reload-catalog = "center_voice_agent.cli.reload_catalog:main"
+center-agent-reload-modes = "center_voice_agent.cli.reload_modes:main"
 center-agent-parent-progress = "center_voice_agent.cli.parent_progress_report:main"
 center-agent-api = "center_voice_agent.api.main:main"
 center-agent-mcp = "center_voice_agent.mcp.server:main"
+center-agent-create-child = "center_voice_agent.cli.run_async:create_child_entry"
+center-agent-text-turn = "center_voice_agent.cli.run_async:text_turn_entry"
+center-agent-live-turn = "center_voice_agent.cli.run_async:live_turn_entry"
+center-agent-memory-roundtrip = "center_voice_agent.cli.run_async:memory_roundtrip_entry"
+center-agent-modes-publish = "center_voice_agent.cli.modes_publish:main"
+center-agent-scenarios-publish = "center_voice_agent.cli.scenarios_publish:main"
+center-agent-live-acceptance = "center_voice_agent.cli.live_acceptance:main"
+center-agent-sync-llm-env = "center_voice_agent.cli.sync_llm_env:main"
+center-agent-retention-purge = "center_voice_agent.cli.retention_purge:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,34 +1,41 @@
 # Хранение и удаление ПДн (12.2.2)
 
-Заполните с юристом. Техническое удаление — CLI ниже.
+Заполните юридические поля с DPO центра. Техническая реализация — ниже.
 
-## Политика (заполнить)
+## Политика (значения по умолчанию в коде)
 
-| Вопрос | Решение центра |
-|--------|----------------|
-| Срок хранения долгой памяти | _например 12 мес после последней сессии_ |
-| Срок хранения логов | _например 30 дней_ |
-| Срок бэкапа SQLite | _например 90 дней, затем уничтожение_ |
-| Кто принимает запрос на удаление | _email / педагог → руководитель_ |
-| Срок исполнения запроса | _например 30 календарных дней_ |
+| Вопрос | Env / код | Значение по умолчанию |
+|--------|-----------|------------------------|
+| Срок `session_messages` | `SESSION_MESSAGES_RETENTION_DAYS` | 90 дней |
+| Срок `session_state` | `SESSION_STATE_RETENTION_DAYS` | 180 дней |
+| Ротация agent.log | `LOG_FILE_MAX_BYTES`, `LOG_FILE_BACKUP_COUNT` | 5 MB, 3 файла |
+| Инциденты модерации | `SECURITY_INCIDENTS_MAX_BYTES` | 1 MB (trim) |
+| Авто-purge при старте API/voice | `RETENTION_PURGE_ON_STARTUP` | false |
 
-## Удаление данных ребёнка (техника)
+## CLI retention
 
 ```powershell
-cd center_voice_agent
-.\.venv\Scripts\activate
-python -m center_voice_agent.cli.purge_child CHILD_ID --confirm
+center-agent-retention-purge
+center-agent-retention-purge --messages-days 60 --state-days 120
 ```
 
-Удаляет: записи `long_term_memory_entries`, `session_state`, строку `child_profiles` (CASCADE).
+Удаляет строки старше порога из `session_messages` и `session_state`.
 
-Журнал: зафиксировать в [INCIDENT_LOG.csv](INCIDENT_LOG.csv) или отдельной таблице «удаления».
+## Удаление данных ребёнка
+
+```powershell
+center-agent-purge-child CHILD_ID --confirm
+```
+
+Удаляет: `long_term_memory_entries`, `session_state`, `child_profiles` (CASCADE).
+
+## Redact в логах
+
+- `LOG_REDACT_USER_TEXT=true` — не логировать текст ребёнка целиком
+- `LOG_REDACT_TOOL_ARGS=true` — маскировать аргументы tools (ПДн)
 
 ## До пилота
 
-- [ ] Бэкап: `scripts\pilot_backup_db.bat`
-- [ ] Репетиция: создать тестового child → `memory_roundtrip` → `purge_child --confirm`
-
-## Родители
-
-Текст уведомления готовит центр. В паспорте: [PASSPORT.md](PASSPORT.md) — галочка согласий.
+- [ ] Согласовать сроки с [152FZ.md](../compliance/152FZ.md)
+- [ ] Включить `RETENTION_PURGE_ON_STARTUP=true` на prod или cron `center-agent-retention-purge`
+- [ ] Репетиция: `center-agent-create-child` → `center-agent-memory-roundtrip` → `center-agent-purge-child --confirm`

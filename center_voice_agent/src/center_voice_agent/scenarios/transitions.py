@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import difflib
+
 
 def normalize_transition_event(when: str) -> str:
     """Единое имя события для сопоставления рёбер."""
@@ -39,13 +41,29 @@ def _text_matches_keys(user_text: str, keys: tuple[str, ...]) -> bool:
     return False
 
 
+def _semantic_matches(user_text: str, keys: tuple[str, ...], *, threshold: float = 0.65) -> bool:
+    """Fuzzy-сопоставление реплики с эталонными фразами (semantic:)."""
+    user_n = _norm_text(user_text)
+    if not user_n or len(user_n.split()) > 30:
+        return False
+    if _text_matches_keys(user_text, keys):
+        return True
+    for k in keys:
+        if not k:
+            continue
+        if difflib.SequenceMatcher(None, user_n, k).ratio() >= threshold:
+            return True
+    return False
+
+
 def parse_when(when: str) -> tuple[str, str | tuple[str, ...]]:
     """
     Возвращает (kind, payload):
     - ("always", "")
     - ("event", "turn_complete")
     - ("keyword", ("да", "хорошо"))
-    - ("mood", ("рад", "хорошо"))  — смысловые группы (после хода)
+    - ("mood", ("рад", "хорошо"))
+    - ("semantic", ("я готов продолжить",))
     """
     w = (when or "").strip()
     if w == "always":
@@ -58,6 +76,10 @@ def parse_when(when: str) -> tuple[str, str | tuple[str, ...]]:
         part = w.split(":", 1)[1]
         keys = tuple(k.strip().lower() for k in part.split(",") if k.strip())
         return "mood", keys
+    if w.lower().startswith("semantic:"):
+        part = w.split(":", 1)[1]
+        keys = tuple(k.strip().lower() for k in part.split("|") if k.strip())
+        return "semantic", keys
     return "event", normalize_transition_event(w)
 
 
@@ -66,6 +88,7 @@ def transition_matches(
     *,
     event: str,
     user_text: str = "",
+    semantic_threshold: float = 0.65,
 ) -> bool:
     kind, payload = parse_when(when)
     if kind == "always":
@@ -74,5 +97,9 @@ def transition_matches(
         if not isinstance(payload, tuple) or not payload:
             return False
         return _text_matches_keys(user_text, payload)
+    if kind == "semantic":
+        if not isinstance(payload, tuple) or not payload:
+            return False
+        return _semantic_matches(user_text, payload, threshold=semantic_threshold)
     ev = normalize_transition_event(event)
     return payload == ev

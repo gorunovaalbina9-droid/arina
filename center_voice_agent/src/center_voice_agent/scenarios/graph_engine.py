@@ -182,6 +182,24 @@ class ScenarioRuntime:
                 return True
         return False
 
+    def advance_on_semantic(self, user_text: str, *, threshold: float = 0.65) -> bool:
+        """Переходы when: semantic:фраза|вариант — fuzzy-сопоставление с репликой."""
+        node = self.current_node()
+        before = self.current_node_id
+        for tr in node.transitions:
+            w = (tr.when or "").strip().lower()
+            if not w.startswith("semantic:"):
+                continue
+            if transition_matches(
+                tr.when,
+                event="semantic",
+                user_text=user_text,
+                semantic_threshold=threshold,
+            ):
+                self._apply_transition(tr, trigger="user_semantic", before=before)
+                return True
+        return False
+
     def advance_on_event(self, event: str) -> bool:
         """
         Первое подходящее ребро: turn_complete / always (не keyword).
@@ -192,6 +210,8 @@ class ScenarioRuntime:
         for tr in node.transitions:
             w = (tr.when or "").strip()
             if w.lower().startswith("keyword:"):
+                continue
+            if w.lower().startswith("semantic:"):
                 continue
             if transition_matches(tr.when, event=ev, user_text=""):
                 self._apply_transition(tr, trigger=event, before=before)

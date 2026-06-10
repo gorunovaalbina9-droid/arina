@@ -21,6 +21,7 @@ Runner: `center_voice_agent.db.migrations_runner.run_migrations` — тольк�
 | `004_scenario_publish` | Публикация сценариев |
 | `005_session_messages` | STM в БД |
 | `006_scenario_definitions_legacy` | Переименование устаревшей таблицы |
+| `007_drop_scenario_definitions_legacy` | Удаление legacy-таблицы |
 
 **003 не «пропущен»** — это отдельный шаг учёта миграций между доменными DDL.
 

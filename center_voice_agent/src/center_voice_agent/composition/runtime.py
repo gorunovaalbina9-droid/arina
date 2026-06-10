@@ -34,6 +34,18 @@ async def get_process_container(settings: Optional[Settings] = None) -> AppConta
         s = settings or get_settings()
         await init_database(s.project_root, s.database_url)
         _process_container = AppContainer.from_settings(s)
+        if s.retention_purge_on_startup:
+            from center_voice_agent.security.retention import (
+                purge_old_session_messages,
+                purge_stale_session_state,
+            )
+
+            await purge_old_session_messages(
+                _process_container.engine, retention_days=s.session_messages_retention_days
+            )
+            await purge_stale_session_state(
+                _process_container.engine, retention_days=s.session_state_retention_days
+            )
         return _process_container
 
 

@@ -25,7 +25,7 @@ def test_detect_dialect() -> None:
 def test_migration_dirs_exist() -> None:
     sqlite_files = migration_files(PROJECT_ROOT, "sqlite")
     pg_files = migration_files(PROJECT_ROOT, "postgresql")
-    assert len(sqlite_files) == len(pg_files) == 6
+    assert len(sqlite_files) == len(pg_files) == 7
     assert any(p.name.startswith("003_") for p in sqlite_files)
 
 
@@ -42,7 +42,7 @@ async def test_migrations_recorded_once(tmp_path: Path) -> None:
         async with engine.connect() as conn:
             r = await conn.execute(text("SELECT COUNT(*) FROM schema_migrations"))
             count = int(r.scalar() or 0)
-        assert count == 6
+        assert count == 7
         async with engine.connect() as conn:
             r2 = await conn.execute(
                 text(
@@ -50,6 +50,6 @@ async def test_migrations_recorded_once(tmp_path: Path) -> None:
                     "AND name='scenario_definitions_legacy'"
                 )
             )
-        assert r2.fetchone() is not None
+        assert r2.fetchone() is None
     finally:
         await engine.dispose()

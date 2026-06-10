@@ -13,17 +13,20 @@ import structlog
 from center_voice_agent.settings import Settings
 
 
-def _make_file_writer(path: Path, *, max_bytes: int) -> Any:
+from center_voice_agent.security.retention import rotate_log_file
+
+
+def _make_file_writer(path: Path, *, max_bytes: int, backup_count: int) -> Any:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     def _write(_logger: Any, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         row = dict(event_dict)
         row["level"] = method_name
         line = json.dumps(row, ensure_ascii=False, default=str) + "\n"
+        if path.is_file() and path.stat().st_size > max_bytes:
+            rotate_log_file(path, max_bytes=max_bytes, backup_count=backup_count)
         with path.open("a", encoding="utf-8") as f:
             f.write(line)
-        if path.is_file() and path.stat().st_size > max_bytes:
-            _trim_incidents_file(path, max_bytes=max_bytes)
         return event_dict
 
     return _write
@@ -54,7 +57,13 @@ def setup_logging(
 
     processors = list(shared)
     if log_file is not None:
-        processors.append(_make_file_writer(log_file, max_bytes=log_file_max_bytes))
+        processors.append(
+            _make_file_writer(
+                log_file,
+                max_bytes=log_file_max_bytes,
+                backup_count=log_file_backup_count,
+            )
+        )
     processors.append(renderer)
 
     structlog.configure(
@@ -63,7 +72,6 @@ def setup_logging(
         cache_logger_on_first_use=True,
     )
     logging.basicConfig(level=getattr(logging, level.upper(), logging.INFO))
-    _ = log_file_backup_count  # reserved for future RotatingFileHandler swap
 
 
 def configure_logging(settings: Settings) -> None:

@@ -8,6 +8,12 @@ import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from center_voice_agent.db.dialect import (
+    DbDialect,
+    coalesce_empty_sql,
+    insert_child_profile_ignore_sql,
+    now_sql,
+)
 from center_voice_agent.memory.categories import ALLOWED_MEMORY_CATEGORIES
 
 log = structlog.get_logger(__name__)
@@ -25,8 +31,15 @@ class MemoryEntryRow:
 class LongTermMemoryRepository:
     """Долгосрочная память: SQLite/PG через async SQLAlchemy."""
 
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        *,
+        dialect: DbDialect = "sqlite",
+    ) -> None:
         self._session_factory = session_factory
+        self._dialect = dialect
+        self._now = now_sql(dialect)
 
     async def ensure_child_profile(
         self,
@@ -36,12 +49,7 @@ class LongTermMemoryRepository:
     ) -> None:
         async with self._session_factory() as session:
             await session.execute(
-                text(
-                    """
-                    INSERT OR IGNORE INTO child_profiles (id, center_id, display_name, age_band, meta_json)
-                    VALUES (:id, :center_id, NULL, NULL, NULL)
-                    """
-                ),
+                text(insert_child_profile_ignore_sql(self._dialect)),
                 {"id": child_profile_id, "center_id": center_id},
             )
             await session.commit()
@@ -65,17 +73,18 @@ class LongTermMemoryRepository:
             like = f"%{escaped}%"
         else:
             like = "%"
+        key_expr = coalesce_empty_sql(self._dialect, "key")
         async with self._session_factory() as session:
             result = await session.execute(
                 text(
-                    """
+                    f"""
                     SELECT id, category, key, value_text, updated_at
                     FROM long_term_memory_entries
                     WHERE child_profile_id = :child
                       AND (
                         :wide = 1
                         OR value_text LIKE :like ESCAPE '\\'
-                        OR IFNULL(key, '') LIKE :like ESCAPE '\\'
+                        OR {key_expr} LIKE :like ESCAPE '\\'
                         OR category LIKE :like ESCAPE '\\'
                       )
                     ORDER BY updated_at DESC
@@ -120,7 +129,7 @@ class LongTermMemoryRepository:
 
         await self.ensure_child_profile(child_profile_id)
         vid = str(uuid.uuid4())
-        now_expr = "datetime('now')"
+        now_expr = self._now
 
         async with self._session_factory() as session:
             if key is not None:

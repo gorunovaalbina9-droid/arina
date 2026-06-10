@@ -326,7 +326,11 @@ class SessionCoordinator:
         out.previous_mode_id = previous_mode_id
 
         if scenario_rt is not None and not skip_advance:
-            if scenario_rt.advance_on_user_mood(user_text):
+            if scenario_rt.advance_on_semantic(
+                user_text, threshold=self.settings.scenario_semantic_threshold
+            ):
+                scenario_rt.vars["last_semantic_match"] = user_text[:120]
+            elif scenario_rt.advance_on_user_mood(user_text):
                 scenario_rt.vars["last_mood_match"] = user_text[:120]
             scenario_rt.advance_on_event("turn_complete")
             row = await repo.get(session_id)
