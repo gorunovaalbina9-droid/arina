@@ -259,7 +259,13 @@ class SessionCoordinator:
         scen_cmds = load_scenario_commands(self._scenario_commands_path)
 
         cmds = load_mode_commands(self._commands_path)
-        target = try_parse_mode_switch(user_text, commands=cmds, voice_aliases=self._voice_alias_map())
+        target = try_parse_mode_switch(
+            user_text,
+            commands=cmds,
+            voice_aliases=self._voice_alias_map(),
+            nlu_enabled=self.settings.mode_switch_nlu_enabled,
+            nlu_threshold=self.settings.mode_switch_nlu_threshold,
+        )
         if target == current:
             target = None
 

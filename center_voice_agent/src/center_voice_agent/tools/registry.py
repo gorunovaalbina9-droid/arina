@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 from center_voice_agent.memory.repository import LongTermMemoryRepository
@@ -19,6 +20,7 @@ class ToolBuildContext:
     web_search_url: Optional[str] = None
     web_search_timeout_sec: float = 15.0
     tool_max_output_chars: int = 4000
+    rag_docs_dir: Optional[Path] = None
 
 
 def register_tool(tool_id: str, builder: ToolBuilder) -> None:

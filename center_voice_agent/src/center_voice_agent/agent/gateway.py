@@ -163,6 +163,8 @@ class AgentGateway:
             web_search_enabled=self.settings.web_search_enabled,
             mode_id=mode_id,
             web_search_allowed_mode_ids=self.settings.web_search_allowed_mode_ids,
+            rag_search_enabled=self.settings.rag_search_enabled,
+            rag_docs_dir=self.settings.rag_docs_dir,
         )
 
         llm_base = build_chat_model(

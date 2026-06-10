@@ -129,6 +129,10 @@ class Settings(BaseSettings):
     log_redact_tool_args: bool = Field(default=True, alias="LOG_REDACT_TOOL_ARGS")
     require_parent_consent: bool = Field(default=False, alias="REQUIRE_PARENT_CONSENT")
     compliance_llm_region: Optional[str] = Field(default=None, alias="COMPLIANCE_LLM_REGION")
+    mode_switch_nlu_enabled: bool = Field(default=True, alias="MODE_SWITCH_NLU_ENABLED")
+    mode_switch_nlu_threshold: float = Field(default=0.82, alias="MODE_SWITCH_NLU_THRESHOLD")
+    rag_docs_dir: Optional[Path] = Field(default=None, alias="RAG_DOCS_DIR")
+    rag_search_enabled: bool = Field(default=False, alias="RAG_SEARCH_ENABLED")
     text_tool_fallback: bool = Field(default=False, alias="TEXT_TOOL_FALLBACK")
     text_tool_fallback_mode: Literal["off", "fenced_only", "strict", "permissive"] = Field(
         default="off",

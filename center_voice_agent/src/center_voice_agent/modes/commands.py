@@ -51,28 +51,18 @@ def try_parse_mode_switch(
     *,
     commands: ModeCommandsFile,
     voice_aliases: dict[str, list[str]],
+    nlu_enabled: bool = False,
+    nlu_threshold: float = 0.82,
 ) -> Optional[str]:
     """
-    Смена режима только при явной команде (не подстрока внутри обычной реплики).
+    Смена режима: exact match; при nlu_enabled — fuzzy fallback (difflib).
     """
-    user_n = _norm(user_text)
-    if not user_n:
-        return None
+    from center_voice_agent.modes.nlu import resolve_mode_switch
 
-    pairs: list[tuple[str, str]] = []
-    for e in commands.entries:
-        for ph in e.phrases:
-            p = _norm(ph)
-            if p:
-                pairs.append((p, e.mode_id))
-    for mid, phrases in voice_aliases.items():
-        for ph in phrases:
-            p = _norm(ph)
-            if p:
-                pairs.append((p, mid))
-
-    pairs.sort(key=lambda x: len(x[0]), reverse=True)
-    for phrase, mode_id in pairs:
-        if _phrase_matches_user(user_n, phrase):
-            return mode_id
-    return None
+    return resolve_mode_switch(
+        user_text,
+        commands=commands,
+        voice_aliases=voice_aliases,
+        nlu_enabled=nlu_enabled,
+        nlu_threshold=nlu_threshold,
+    )

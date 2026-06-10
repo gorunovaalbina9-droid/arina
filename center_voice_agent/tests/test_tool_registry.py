@@ -17,3 +17,7 @@ def test_build_web_search_without_repo() -> None:
     )
     tool = build_tool("web_search", ctx)
     assert tool.name == "web_search"
+
+
+def test_rag_search_registered() -> None:
+    assert "rag_search" in registered_tool_ids()

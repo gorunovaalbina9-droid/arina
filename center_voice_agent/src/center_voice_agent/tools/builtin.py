@@ -7,6 +7,7 @@ from typing import Any, Optional
 from langchain_core.tools import StructuredTool, tool
 
 from center_voice_agent.tools.impl import memory as memory_impl
+from center_voice_agent.tools.impl import rag_search as rag_search_impl
 from center_voice_agent.tools.impl import web_search as web_search_impl
 from center_voice_agent.tools.registry import ToolBuildContext, register_tool
 
@@ -51,6 +52,23 @@ def make_memory_upsert_tool(repo, *, child_profile_id: str) -> StructuredTool:
     )
 
 
+def make_rag_search_tool(
+    *,
+    docs_dir,
+    max_chars: int,
+) -> Any:
+    @tool
+    async def rag_search(query: str) -> str:
+        """Поиск по локальным методичкам центра."""
+        return await rag_search_impl.rag_search_text(
+            query,
+            docs_dir=docs_dir,
+            max_chars=max_chars,
+        )
+
+    return rag_search
+
+
 def make_web_search_tool(
     *,
     api_url: Optional[str],
@@ -90,10 +108,18 @@ def _build_web_search(ctx: ToolBuildContext) -> Any:
     )
 
 
+def _build_rag_search(ctx: ToolBuildContext) -> Any:
+    return make_rag_search_tool(
+        docs_dir=ctx.rag_docs_dir,
+        max_chars=ctx.tool_max_output_chars,
+    )
+
+
 def _register_builtin_tools() -> None:
     register_tool("memory_search", _build_memory_search)
     register_tool("memory_upsert", _build_memory_upsert)
     register_tool("web_search", _build_web_search)
+    register_tool("rag_search", _build_rag_search)
 
 
 _register_builtin_tools()
@@ -102,4 +128,5 @@ __all__ = [
     "make_memory_search_tool",
     "make_memory_upsert_tool",
     "make_web_search_tool",
+    "make_rag_search_tool",
 ]
