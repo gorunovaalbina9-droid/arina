@@ -15,12 +15,37 @@ def _norm_text(s: str) -> str:
     return " ".join((s or "").lower().split())
 
 
+def _strip_edge_punct(word: str) -> str:
+    return word.strip(".,!?;:…\"'«»()[]")
+
+
+def _text_matches_keys(user_text: str, keys: tuple[str, ...]) -> bool:
+    low = _norm_text(user_text)
+    if not low:
+        return False
+    tokens = [_strip_edge_punct(w) for w in low.split()]
+    token_set = {t for t in tokens if t}
+    for k in keys:
+        if not k:
+            continue
+        if k == low:
+            return True
+        if k in token_set:
+            return True
+        if low.startswith(k + " ") or low.startswith(k + ",") or low.startswith(k + "."):
+            return True
+        if f" {k} " in f" {low} ":
+            return True
+    return False
+
+
 def parse_when(when: str) -> tuple[str, str | tuple[str, ...]]:
     """
     Возвращает (kind, payload):
     - ("always", "")
     - ("event", "turn_complete")
     - ("keyword", ("да", "хорошо"))
+    - ("mood", ("рад", "хорошо"))  — смысловые группы (после хода)
     """
     w = (when or "").strip()
     if w == "always":
@@ -29,6 +54,10 @@ def parse_when(when: str) -> tuple[str, str | tuple[str, ...]]:
         part = w.split(":", 1)[1]
         keys = tuple(k.strip().lower() for k in part.split(",") if k.strip())
         return "keyword", keys
+    if w.lower().startswith("mood:"):
+        part = w.split(":", 1)[1]
+        keys = tuple(k.strip().lower() for k in part.split(",") if k.strip())
+        return "mood", keys
     return "event", normalize_transition_event(w)
 
 
@@ -41,10 +70,9 @@ def transition_matches(
     kind, payload = parse_when(when)
     if kind == "always":
         return True
-    if kind == "keyword":
+    if kind in ("keyword", "mood"):
         if not isinstance(payload, tuple) or not payload:
             return False
-        low = _norm_text(user_text)
-        return any(k in low for k in payload)
+        return _text_matches_keys(user_text, payload)
     ev = normalize_transition_event(event)
     return payload == ev

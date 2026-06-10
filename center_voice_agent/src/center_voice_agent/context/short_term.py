@@ -12,7 +12,7 @@ Role = Literal["user", "assistant"]
 
 @dataclass
 class ShortTermMemory:
-    """Последние N сообщений user/assistant (краткосрочная память, см. SHORT_TERM_MAX_MESSAGES)."""
+    """Последние N сообщений user/assistant (N = Settings.short_term_message_limit, обычно пары×2)."""
 
     max_turns: int = 15
     _messages: Deque[tuple[Role, str]] = field(init=False)

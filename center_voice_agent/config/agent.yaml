@@ -1,5 +1,7 @@
 # Поведение агента (не секреты). Секреты — только в .env (см. Settings).
-short_term_max_messages: 15
+# short_term_max_pairs: 15  → 30 сообщений (15 пар user+assistant)
+short_term_max_pairs: 15
+short_term_max_messages: 30
 default_max_tool_rounds: 10
 memory_prefetch_limit: 8
 log_file_path: logs/agent.log

@@ -57,7 +57,7 @@ class SessionStateRepository:
         existing = await self.get(session_id)
         if existing:
             return existing
-        state = json.dumps({"version": 1}, ensure_ascii=False)
+        state = json.dumps({"version": 2}, ensure_ascii=False)
         async with self._session_factory() as session:
             await session.execute(
                 text(
@@ -109,6 +109,20 @@ class SessionStateRepository:
     async def attach_scenario(self, session_id: str, scenario_id: str, *, node_id: Optional[str] = None) -> None:
         """Привязать активный сценарий к сессии (node_id NULL = entry при следующей загрузке)."""
         await self.update_scenario_pointer(session_id, scenario_id=scenario_id, scenario_node_id=node_id)
+
+    async def update_state_json(self, session_id: str, state_json: str) -> None:
+        async with self._session_factory() as session:
+            await session.execute(
+                text(
+                    """
+                    UPDATE session_state
+                    SET state_json = :sj, updated_at = datetime('now')
+                    WHERE session_id = :sid
+                    """
+                ),
+                {"sid": session_id, "sj": state_json},
+            )
+            await session.commit()
 
     async def latest_scenario_for_child(
         self, child_profile_id: str

@@ -25,6 +25,7 @@ class TurnPromptBuilder:
         long_term_summary: Optional[str],
         age_band: Optional[str],
         scenario: Optional[ScenarioRuntime],
+        system_note: Optional[str] = None,
     ) -> list[BaseMessage]:
         short_term.append_user(user_text)
 
@@ -40,6 +41,8 @@ class TurnPromptBuilder:
             system_parts.append("Краткая долгосрочная память о ребёнке:\n" + long_term_summary.strip())
         if node_hint:
             system_parts.append("Текущий этап сценария:\n" + node_hint.strip())
+        if system_note:
+            system_parts.append("Служебная инструкция на этот ход:\n" + system_note.strip())
 
         return [
             SystemMessage(content="\n\n".join(system_parts)),

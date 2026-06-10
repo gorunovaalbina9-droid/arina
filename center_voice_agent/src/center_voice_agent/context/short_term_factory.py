@@ -14,7 +14,7 @@ async def build_short_term_memory(
     messages_repo: Optional[SessionMessagesRepository] = None,
 ) -> ShortTermMemory:
     """RAM по умолчанию; при SHORT_TERM_SOURCE=db — загрузка последних реплик из SQLite."""
-    max_turns = settings.short_term_max_messages
+    max_turns = settings.short_term_message_limit
     if settings.short_term_source != "db":
         return ShortTermMemory(max_turns=max_turns)
     if messages_repo is None:
@@ -38,4 +38,4 @@ async def persist_turn_messages(
         return
     await messages_repo.append(session_id, "user", user_text)
     await messages_repo.append(session_id, "assistant", reply)
-    await messages_repo.trim(session_id, keep=settings.short_term_max_messages)
+    await messages_repo.trim(session_id, keep=settings.short_term_message_limit)

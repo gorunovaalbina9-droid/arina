@@ -32,6 +32,20 @@ def _norm(s: str) -> str:
     return " ".join(s.lower().split())
 
 
+def _phrase_matches_user(user_n: str, phrase: str) -> bool:
+    """Точное совпадение или фраза-команда в начале/как отдельное слово (меньше ложных срабатываний)."""
+    if not phrase or len(phrase) < 2:
+        return False
+    if user_n == phrase:
+        return True
+    if user_n.startswith(phrase + " ") or user_n.startswith(phrase + ","):
+        return True
+    if user_n.endswith(" " + phrase):
+        return True
+    wrapped = f" {user_n} "
+    return f" {phrase} " in wrapped
+
+
 def try_parse_mode_switch(
     user_text: str,
     *,
@@ -39,8 +53,7 @@ def try_parse_mode_switch(
     voice_aliases: dict[str, list[str]],
 ) -> Optional[str]:
     """
-    Определяет, хочет ли пользователь сменить режим по фразе.
-    voice_aliases: mode_id -> список фраз из YAML режимов.
+    Смена режима только при явной команде (не подстрока внутри обычной реплики).
     """
     user_n = _norm(user_text)
     if not user_n:
@@ -60,8 +73,6 @@ def try_parse_mode_switch(
 
     pairs.sort(key=lambda x: len(x[0]), reverse=True)
     for phrase, mode_id in pairs:
-        if len(phrase) < 2:
-            continue
-        if phrase == user_n or phrase in user_n:
+        if _phrase_matches_user(user_n, phrase):
             return mode_id
     return None

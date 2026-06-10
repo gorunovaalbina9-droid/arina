@@ -107,6 +107,7 @@ class ScenarioRuntime:
     """Текущее положение в графе сценария."""
 
     graph: ScenarioGraph
+    vars: dict[str, object] = field(default_factory=dict)
     current_node_id: str = field(init=False)
 
     def __post_init__(self) -> None:
@@ -118,13 +119,21 @@ class ScenarioRuntime:
     def start(cls, graph: ScenarioGraph) -> ScenarioRuntime:
         r = cls.__new__(cls)
         r.graph = graph
+        r.vars = {}
         r.__post_init__()
         return r
 
     @classmethod
-    def resume(cls, graph: ScenarioGraph, node_id: Optional[str]) -> ScenarioRuntime:
+    def resume(
+        cls,
+        graph: ScenarioGraph,
+        node_id: Optional[str],
+        *,
+        vars: Optional[dict[str, object]] = None,
+    ) -> ScenarioRuntime:
         r = cls.__new__(cls)
         r.graph = graph
+        r.vars = dict(vars or {})
         if node_id and node_id in graph.nodes:
             r.current_node_id = node_id
         else:
@@ -152,10 +161,24 @@ class ScenarioRuntime:
         node = self.current_node()
         before = self.current_node_id
         for tr in node.transitions:
-            if not (tr.when or "").strip().lower().startswith("keyword:"):
+            w = (tr.when or "").strip().lower()
+            if not w.startswith("keyword:"):
                 continue
             if transition_matches(tr.when, event="user_text", user_text=user_text):
                 self._apply_transition(tr, trigger="user_keyword", before=before)
+                return True
+        return False
+
+    def advance_on_user_mood(self, user_text: str) -> bool:
+        """Переходы when: mood:... — смысловые группы слов после ответа LLM."""
+        node = self.current_node()
+        before = self.current_node_id
+        for tr in node.transitions:
+            w = (tr.when or "").strip().lower()
+            if not w.startswith("mood:"):
+                continue
+            if transition_matches(tr.when, event="mood", user_text=user_text):
+                self._apply_transition(tr, trigger="user_mood", before=before)
                 return True
         return False
 

@@ -77,7 +77,10 @@ class AppContainer:
             gateway,
             settings=self.settings,
             mode_registry=self.mode_registry,
+            session_repository=self.session_repository,
+            session_messages_repository=self.session_messages_repository,
             rate_limiter=self.rate_limiter,
+            engine=self._engine,
         )
 
     @property

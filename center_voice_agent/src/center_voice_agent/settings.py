@@ -100,7 +100,8 @@ class Settings(BaseSettings):
 
     prefetch_long_term_memory: bool = Field(default=True, alias="PREFETCH_LONG_TERM_MEMORY")
     prefetch_memory_limit: int = Field(default=8, alias="PREFETCH_MEMORY_LIMIT")
-    short_term_max_messages: int = Field(default=15, alias="SHORT_TERM_MAX_MESSAGES")
+    short_term_max_pairs: int = Field(default=15, alias="SHORT_TERM_MAX_PAIRS")
+    short_term_max_messages: int = Field(default=30, alias="SHORT_TERM_MAX_MESSAGES")
     short_term_source: Literal["memory", "db"] = Field(default="memory", alias="SHORT_TERM_SOURCE")
 
     log_redact_user_text: bool = Field(default=True, alias="LOG_REDACT_USER_TEXT")
@@ -129,6 +130,7 @@ class Settings(BaseSettings):
         if not isinstance(raw, dict):
             return self
         mapping: dict[str, str] = {
+            "short_term_max_pairs": "short_term_max_pairs",
             "short_term_max_messages": "short_term_max_messages",
             "default_max_tool_rounds": "default_max_tool_rounds",
             "memory_prefetch_limit": "prefetch_memory_limit",
@@ -229,6 +231,11 @@ class Settings(BaseSettings):
         if new_url is not None:
             object.__setattr__(self, "database_url", new_url)
         return self
+
+    @property
+    def short_term_message_limit(self) -> int:
+        """Число сообщений user/assistant в STM (пары × 2)."""
+        return self.short_term_max_pairs * 2
 
 
 @lru_cache
