@@ -9,7 +9,6 @@ llm_params:
   max_tokens: 512
 tool_ids:
   - memory_search
-  - web_search
 allowed_transitions:
   - dialog
   - lesson

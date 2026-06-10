@@ -12,7 +12,9 @@ from center_voice_agent.context.short_term_factory import persist_turn_messages
 from center_voice_agent.logging_setup import log_security_incident
 from center_voice_agent.modes.commands import load_mode_commands, try_parse_mode_switch
 from center_voice_agent.modes.registry import ModeRegistry
-from center_voice_agent.security.moderation import check_input_blocked, check_output_blocked
+from center_voice_agent.security.consent import check_parent_consent_required
+from center_voice_agent.security.escalation import get_escalation_tracker, log_moderation_escalation
+from center_voice_agent.security.moderation_engine import ModerationEngine
 from center_voice_agent.security.rate_limit import RateLimiter, get_default_rate_limiter
 from center_voice_agent.scenarios.graph_engine import ScenarioRuntime
 from center_voice_agent.scenarios.loader import load_scenario_graph_unified_async
@@ -52,6 +54,8 @@ class SessionCoordinator:
         self._messages = session_messages_repository or gateway.container.session_messages_repository
         self._engine = engine or gateway.container.engine
         self._rate_limiter = rate_limiter or get_default_rate_limiter()
+        self._moderation = ModerationEngine.from_settings(self.settings)
+        self._escalation = get_escalation_tracker(threshold=self.settings.moderation_escalation_threshold)
         self._commands_path = self.settings.voice_commands_path
         self._scenario_commands_path = self.settings.scenario_commands_path
 
@@ -149,6 +153,33 @@ class SessionCoordinator:
         row = await repo.get(session_id)
         assert row is not None
         current = row.mode_id
+
+        if self.settings.require_parent_consent:
+            consent_reason = await check_parent_consent_required(
+                self.gateway.memory_repository._session_factory,
+                child_profile_id,
+                require=True,
+            )
+            if consent_reason:
+                log_security_incident(
+                    reason=consent_reason,
+                    session_id=session_id,
+                    child_profile_id=child_profile_id,
+                    direction="consent",
+                )
+                msg = "Сначала нужно согласие родителей — попроси педагога или родителя помочь."
+                short_term.append_user(user_text)
+                short_term.append_assistant(msg)
+                await self._persist_short_term_turn(session_id, user_text, msg)
+                return AgentTurnResult(
+                    text=msg,
+                    reply_spoken=msg,
+                    mode_id=current,
+                    scenario_id=row.scenario_id,
+                    scenario_node_id=row.scenario_node_id,
+                    tool_calls=[],
+                )
+
         mode_changed = False
         previous_mode_id: Optional[str] = None
         system_note: Optional[str] = None
@@ -179,10 +210,8 @@ class SessionCoordinator:
                     tool_calls=[],
                 )
 
-        blocked_in = self.settings.moderation_blocked_input_substrings
-        blocked_out = self.settings.moderation_blocked_output_substrings
         if self.settings.moderation_enabled:
-            blocked = check_input_blocked(user_text, blocked=blocked_in)
+            blocked = self._moderation.check_input(user_text)
             if blocked:
                 log_security_incident(
                     reason=blocked,
@@ -190,6 +219,29 @@ class SessionCoordinator:
                     child_profile_id=child_profile_id,
                     direction="input",
                 )
+                if self._escalation.record_block(
+                    session_id=session_id,
+                    child_profile_id=child_profile_id,
+                    reason=blocked,
+                    direction="input",
+                ):
+                    incidents_path = None
+                    max_bytes = 1_000_000
+                    if self.settings.security_incidents_path:
+                        from pathlib import Path
+
+                        p = Path(self.settings.security_incidents_path)
+                        incidents_path = p if p.is_absolute() else self.settings.project_root / p
+                        max_bytes = self.settings.security_incidents_max_bytes
+                    log_moderation_escalation(
+                        session_id=session_id,
+                        child_profile_id=child_profile_id,
+                        reason=blocked,
+                        direction="input",
+                        block_count=self.settings.moderation_escalation_threshold,
+                        incidents_file=incidents_path,
+                        incidents_max_bytes=max_bytes,
+                    )
                 msg = "Давай поговорим о чём-нибудь другом — я не могу ответить на такой запрос."
                 short_term.append_user(user_text)
                 short_term.append_assistant(msg)
@@ -286,12 +338,18 @@ class SessionCoordinator:
             )
 
         if self.settings.moderation_enabled:
-            ob = check_output_blocked(out.text, blocked=blocked_out)
+            ob = self._moderation.check_output(out.text)
             if ob:
                 log_security_incident(
                     reason=ob,
                     session_id=session_id,
                     child_profile_id=child_profile_id,
+                    direction="output",
+                )
+                self._escalation.record_block(
+                    session_id=session_id,
+                    child_profile_id=child_profile_id,
+                    reason=ob,
                     direction="output",
                 )
                 safe = "Извини, я не могу так ответить. Давай сменим тему."

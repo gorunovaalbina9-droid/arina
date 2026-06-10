@@ -45,6 +45,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     project_root: Path = Field(default_factory=_find_project_root)
@@ -112,9 +113,22 @@ class Settings(BaseSettings):
     moderation_config_path: Optional[Path] = Field(default=None)
     moderation_blocked_input_substrings: tuple[str, ...] = Field(default_factory=tuple)
     moderation_blocked_output_substrings: tuple[str, ...] = Field(default_factory=tuple)
+    moderation_blocked_input_patterns: tuple[str, ...] = Field(default_factory=tuple)
+    moderation_blocked_output_patterns: tuple[str, ...] = Field(default_factory=tuple)
+    moderation_api_url: Optional[str] = Field(default=None, alias="MODERATION_API_URL")
+    moderation_api_key: Optional[str] = Field(default=None, alias="MODERATION_API_KEY")
+    moderation_api_timeout_sec: float = Field(default=5.0, alias="MODERATION_API_TIMEOUT_SEC")
+    moderation_escalation_threshold: int = Field(default=3, alias="MODERATION_ESCALATION_THRESHOLD")
     rate_limit_enabled: bool = Field(default=True, alias="RATE_LIMIT_ENABLED")
     rate_limit_per_minute: int = Field(default=20, alias="RATE_LIMIT_PER_MINUTE")
     rate_limit_per_hour: int = Field(default=120, alias="RATE_LIMIT_PER_HOUR")
+    rate_limit_backend: Literal["memory", "redis"] = Field(default="memory", alias="RATE_LIMIT_BACKEND")
+    redis_url: Optional[str] = Field(default=None, alias="REDIS_URL")
+    web_search_enabled: bool = Field(default=False, alias="WEB_SEARCH_ENABLED")
+    web_search_allowed_mode_ids: tuple[str, ...] = Field(default_factory=tuple)
+    log_redact_tool_args: bool = Field(default=True, alias="LOG_REDACT_TOOL_ARGS")
+    require_parent_consent: bool = Field(default=False, alias="REQUIRE_PARENT_CONSENT")
+    compliance_llm_region: Optional[str] = Field(default=None, alias="COMPLIANCE_LLM_REGION")
     text_tool_fallback: bool = Field(default=True, alias="TEXT_TOOL_FALLBACK")
 
     @model_validator(mode="after")
@@ -174,8 +188,16 @@ class Settings(BaseSettings):
                 return ()
             return tuple(str(x).strip().lower() for x in items if str(x).strip())
 
+        def _patterns(key: str) -> tuple[str, ...]:
+            items = raw.get(key) or []
+            if not isinstance(items, list):
+                return ()
+            return tuple(str(x).strip() for x in items if str(x).strip())
+
         inp = _phrases("blocked_input_substrings")
         out = _phrases("blocked_output_substrings")
+        inp_pat = _patterns("blocked_input_patterns")
+        out_pat = _patterns("blocked_output_patterns")
         legacy = _phrases("blocked_substrings")
         if not inp and legacy:
             inp = legacy
@@ -185,6 +207,10 @@ class Settings(BaseSettings):
             object.__setattr__(self, "moderation_blocked_input_substrings", inp)
         if out:
             object.__setattr__(self, "moderation_blocked_output_substrings", out)
+        if inp_pat:
+            object.__setattr__(self, "moderation_blocked_input_patterns", inp_pat)
+        if out_pat:
+            object.__setattr__(self, "moderation_blocked_output_patterns", out_pat)
         return self
 
     @model_validator(mode="after")

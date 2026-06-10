@@ -9,7 +9,6 @@ llm_params:
 tool_ids:
   - memory_search
   - memory_upsert
-  - web_search
 allowed_transitions:
   - lesson
   - play

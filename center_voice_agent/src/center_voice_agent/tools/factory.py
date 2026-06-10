@@ -22,8 +22,17 @@ def build_tools_for_mode(
     web_search_url: Optional[str] = None,
     web_search_timeout_sec: float = 15.0,
     tool_max_output_chars: int = 4000,
+    web_search_enabled: bool = False,
+    mode_id: Optional[str] = None,
+    web_search_allowed_mode_ids: tuple[str, ...] = (),
 ) -> list[Any]:
-    """Собирает LangChain-инструменты для режима; память привязана к child_profile_id сессии."""
+    """Собирает LangChain-инструменты для режима; web_search только при явном включении."""
+    effective_ids = list(tool_ids)
+    if "web_search" in effective_ids:
+        allowed = set(web_search_allowed_mode_ids or ())
+        mode_ok = mode_id is None or not allowed or mode_id in allowed
+        if not web_search_enabled or not mode_ok:
+            effective_ids = [t for t in effective_ids if t != "web_search"]
     ctx = ToolBuildContext(
         memory_repo=memory_repo,
         child_profile_id=child_profile_id,
@@ -31,4 +40,4 @@ def build_tools_for_mode(
         web_search_timeout_sec=web_search_timeout_sec,
         tool_max_output_chars=tool_max_output_chars,
     )
-    return [build_tool(tid, ctx) for tid in tool_ids]
+    return [build_tool(tid, ctx) for tid in effective_ids]

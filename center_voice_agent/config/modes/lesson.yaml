@@ -10,7 +10,6 @@ llm_params:
 max_tool_rounds: 12
 tool_ids:
   - memory_search
-  - web_search
 allowed_transitions:
   - dialog
   - play

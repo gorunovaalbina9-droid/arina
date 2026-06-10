@@ -22,6 +22,7 @@ from center_voice_agent.memory.repository import LongTermMemoryRepository
 from center_voice_agent.modes.registry import ModeRegistry
 from center_voice_agent.scenarios.graph_engine import ScenarioRuntime
 from center_voice_agent.session.repo import SessionStateRepository
+from center_voice_agent.security.redact import redact_tool_calls
 from center_voice_agent.settings import Settings
 from center_voice_agent.tools.factory import build_tools_for_mode
 from center_voice_agent.tools.impl.web_search import truncate_tool_output
@@ -154,6 +155,9 @@ class AgentGateway:
             web_search_url=self.settings.web_search_url,
             web_search_timeout_sec=self.settings.web_search_timeout_sec,
             tool_max_output_chars=max_tool_chars,
+            web_search_enabled=self.settings.web_search_enabled,
+            mode_id=mode_id,
+            web_search_allowed_mode_ids=self.settings.web_search_allowed_mode_ids,
         )
 
         llm_base = build_chat_model(
@@ -239,11 +243,16 @@ class AgentGateway:
             timings=timings,
         )
 
+        safe_tools = redact_tool_calls(
+            executed_tools,
+            redact_args=self.settings.log_redact_tool_args,
+        )
+
         return AgentTurnResult(
             text=text,
             mode_id=mode_id,
             scenario_id=scenario_id,
             scenario_node_id=node_id,
-            tool_calls=executed_tools,
+            tool_calls=safe_tools,
             reply_spoken=text,
         )

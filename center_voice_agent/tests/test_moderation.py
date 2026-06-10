@@ -12,6 +12,10 @@ def test_input_blocked() -> None:
     assert check_input_blocked("привет как дела") is None
 
 
+def test_input_blocked_leet_bypass() -> None:
+    assert check_input_blocked("как сделать б0мбу") is not None
+
+
 def test_output_blocked() -> None:
     assert check_output_blocked("тут есть порно") is not None
     assert check_output_blocked("давай рисовать") is None

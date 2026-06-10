@@ -18,6 +18,7 @@ from center_voice_agent.memory.repository import LongTermMemoryRepository
 from center_voice_agent.modes.registry import ModeRegistry
 from center_voice_agent.orchestration.coordinator import SessionCoordinator
 from center_voice_agent.security.rate_limit import InMemoryRateLimiter, RateLimiter
+from center_voice_agent.security.rate_limit_factory import build_rate_limiter
 from center_voice_agent.session.repo import SessionStateRepository
 from center_voice_agent.settings import Settings, get_settings
 
@@ -55,6 +56,7 @@ class AppContainer:
             modes_center_id=s.modes_center_id,
         )
         bands = load_age_bands(s.age_bands_path)
+        limiter = build_rate_limiter(s)
         return cls(
             settings=s,
             mode_registry=modes,
@@ -63,6 +65,7 @@ class AppContainer:
             session_messages_repository=SessionMessagesRepository(session_factory),
             prompt_builder=TurnPromptBuilder(age_bands=bands),
             age_bands=bands,
+            rate_limiter=limiter,
             _engine=engine,
         )
 

@@ -58,4 +58,9 @@ def test_build_tools_requires_memory_when_mode_has_memory() -> None:
     with pytest.raises(ValueError):
         build_tools_for_mode(["memory_search"], memory_repo=None, child_profile_id="c1")
 
-    assert build_tools_for_mode(["web_search"], memory_repo=None, child_profile_id="c1")
+    assert build_tools_for_mode(
+        ["web_search"],
+        memory_repo=None,
+        child_profile_id="c1",
+        web_search_enabled=True,
+    )
