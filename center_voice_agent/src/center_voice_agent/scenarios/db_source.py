@@ -1,11 +1,11 @@
+"""Чтение/запись scenario_publish. Чтение — SQLAlchemy; publish — async (см. admin/publish)."""
+
 from __future__ import annotations
 
-import sqlite3
-import uuid
-from collections import defaultdict
 from typing import Optional
 
-from center_voice_agent.db.sqlite_path import sqlite_file_path_from_url
+from center_voice_agent.admin.async_util import run_coroutine_sync
+from center_voice_agent.admin.db_read import fetch_published_scenario_yamls_sync
 
 
 def fetch_published_scenario_yamls(
@@ -13,57 +13,7 @@ def fetch_published_scenario_yamls(
     *,
     center_id: Optional[str] = None,
 ) -> dict[str, str]:
-    """Опубликованные YAML графов сценариев (ключ — поле id внутри YAML)."""
-    path = sqlite_file_path_from_url(database_url)
-    if path is None or not path.is_file():
-        return {}
-    conn = sqlite3.connect(str(path))
-    try:
-        if center_id is None:
-            cur = conn.execute(
-                """
-                SELECT scenario_id, config_yaml, version
-                FROM scenario_publish
-                WHERE status = 'published' AND center_id IS NULL
-                ORDER BY scenario_id, version DESC
-                """
-            )
-            rows = [(r[0], r[1], r[2], None) for r in cur.fetchall()]
-        else:
-            cur = conn.execute(
-                """
-                SELECT scenario_id, config_yaml, version, center_id
-                FROM scenario_publish
-                WHERE status = 'published' AND (center_id IS NULL OR center_id = ?)
-                ORDER BY scenario_id, version DESC
-                """,
-                (center_id,),
-            )
-            rows = cur.fetchall()
-    finally:
-        conn.close()
-
-    if center_id is None:
-        out: dict[str, str] = {}
-        for scenario_id, yaml_text, _ver, _ in rows:
-            if scenario_id not in out:
-                out[str(scenario_id)] = str(yaml_text)
-        return out
-
-    buckets: dict[str, list[tuple[str, int, Optional[str]]]] = defaultdict(list)
-    for scenario_id, yaml_text, ver, cid in rows:
-        buckets[str(scenario_id)].append((str(yaml_text), int(ver), cid))
-
-    out2: dict[str, str] = {}
-    for sid, lst in buckets.items():
-        lst.sort(
-            key=lambda x: (
-                0 if x[2] == center_id else 1 if x[2] is None else 2,
-                -x[1],
-            )
-        )
-        out2[sid] = lst[0][0]
-    return out2
+    return fetch_published_scenario_yamls_sync(database_url, center_id=center_id)
 
 
 def publish_scenario_yaml_sync(
@@ -76,37 +26,40 @@ def publish_scenario_yaml_sync(
     subject: Optional[str] = None,
     age_band: Optional[str] = None,
 ) -> str:
-    path = sqlite_file_path_from_url(database_url)
-    if path is None:
-        raise ValueError("publish_scenario_yaml_sync поддерживает только SQLite (sqlite+aiosqlite)")
-    rid = str(uuid.uuid4())
-    conn = sqlite3.connect(str(path))
-    try:
-        if status == "published":
-            conn.execute(
-                """
-                DELETE FROM scenario_publish
-                WHERE scenario_id = ? AND status = 'published'
-                  AND (center_id IS ? OR (center_id IS NULL AND ? IS NULL))
-                """,
-                (scenario_id, center_id, center_id),
+    async def _run() -> str:
+        from center_voice_agent.admin.publish import publish_scenario_yaml
+        from center_voice_agent.composition.runtime import _process_container
+        from center_voice_agent.db.session import create_engine_and_session_factory, run_migrations
+        from center_voice_agent.settings import get_settings
+
+        if (
+            _process_container is not None
+            and _process_container.settings.database_url == database_url
+        ):
+            return await publish_scenario_yaml(
+                _process_container.engine,
+                config_yaml=config_yaml,
+                scenario_id=scenario_id,
+                center_id=center_id,
+                status=status,
+                subject=subject,
+                age_band=age_band,
             )
-        cur = conn.execute(
-            "SELECT COALESCE(MAX(version), 0) + 1 FROM scenario_publish WHERE scenario_id = ?",
-            (scenario_id,),
-        )
-        nxt = int(cur.fetchone()[0])
-        conn.execute(
-            """
-            INSERT INTO scenario_publish (
-                id, scenario_id, center_id, status, version, config_yaml,
-                subject, age_band, updated_at, created_at
+
+        settings = get_settings()
+        engine, _ = create_engine_and_session_factory(database_url)
+        try:
+            await run_migrations(engine, settings.project_root)
+            return await publish_scenario_yaml(
+                engine,
+                config_yaml=config_yaml,
+                scenario_id=scenario_id,
+                center_id=center_id,
+                status=status,
+                subject=subject,
+                age_band=age_band,
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-            """,
-            (rid, scenario_id, center_id, status, nxt, config_yaml, subject, age_band),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-    return rid
+        finally:
+            await engine.dispose()
+
+    return run_coroutine_sync(_run)

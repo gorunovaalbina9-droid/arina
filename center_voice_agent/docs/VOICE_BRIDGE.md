@@ -3,7 +3,7 @@
 - Мост: `voice_assistant/center_agent_bridge.py`
 - Флаг: `USE_CENTER_AGENT=true`
 - Без API: по умолчанию fake LLM; для live: `CENTER_AGENT_LIVE=true`
-- Вызов: `ask_center_agent(text, session_id=...)`
+- Вызов: `ask_center_agent(text, session_id=...)` — внутри `voice.ask_voice_sync` (долгая сессия + один container)
 
 Проверка без микрофона:
 

@@ -57,7 +57,7 @@ class SessionCoordinator:
             return target in self._modes.list_ids()
         return target in mode.allowed_transitions
 
-    def _resolve_scenario_runtime(
+    async def _resolve_scenario_runtime(
         self,
         *,
         scenario: Optional[ScenarioRuntime],
@@ -66,12 +66,13 @@ class SessionCoordinator:
         if scenario is not None:
             return scenario
         if row.scenario_id:
-            graph = load_scenario_graph_unified(
+            graph = await load_scenario_graph_unified_async(
                 self.settings.scenarios_dir,
                 row.scenario_id,
                 database_url=self.settings.database_url,
                 scenarios_source=self.settings.scenarios_source,
                 scenarios_center_id=self.settings.scenarios_center_id,
+                engine=self.gateway.container.engine,
             )
             return ScenarioRuntime.resume(graph, row.scenario_node_id)
         return None
@@ -172,7 +173,7 @@ class SessionCoordinator:
                     tool_calls=[],
                 )
 
-        scenario_rt = self._resolve_scenario_runtime(scenario=scenario, row=row)
+        scenario_rt = await self._resolve_scenario_runtime(scenario=scenario, row=row)
         scen_cmds = load_scenario_commands(self._scenario_commands_path)
 
         cmds = load_mode_commands(self._commands_path)

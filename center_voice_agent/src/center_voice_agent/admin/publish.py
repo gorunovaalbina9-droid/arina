@@ -8,7 +8,7 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from center_voice_agent.composition.runtime import get_publish_lock
+from center_voice_agent.composition.locks import get_publish_lock
 
 
 async def publish_mode_yaml(

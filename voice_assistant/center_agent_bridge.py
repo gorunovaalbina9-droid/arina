@@ -2,6 +2,7 @@
 Мост voice_assistant → center_voice_agent (офлайн: fake LLM через env агента).
 
 USE_CENTER_AGENT=true — GUI вызывает ask_center_agent() вместо старого контура.
+Долгоживущая сессия: center_voice_agent.voice.VoiceSessionManager.
 """
 
 from __future__ import annotations
@@ -39,9 +40,9 @@ def ask_center_agent(
     scenario_id: str | None = None,
 ) -> str:
     _agent_src_on_path()
-    from center_voice_agent.integration.bridge import ask_once_sync
+    from center_voice_agent.voice import ask_voice_sync
 
-    return ask_once_sync(
+    return ask_voice_sync(
         user_text,
         session_id=session_id,
         child_profile_id=child_profile_id,

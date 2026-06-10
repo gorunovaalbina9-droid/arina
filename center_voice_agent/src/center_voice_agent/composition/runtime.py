@@ -1,5 +1,5 @@
 """
-Жизненный цикл процесса: один AppContainer, блокировка publish.
+Жизненный цикл процесса: один AppContainer на процесс.
 """
 
 from __future__ import annotations
@@ -8,17 +8,19 @@ import asyncio
 from typing import Optional
 
 from center_voice_agent.composition.container import AppContainer
+from center_voice_agent.composition.locks import get_publish_lock
 from center_voice_agent.db.session import init_database
 from center_voice_agent.settings import Settings, get_settings
 
 _process_container: Optional[AppContainer] = None
 _process_lock = asyncio.Lock()
-_publish_lock = asyncio.Lock()
 
-
-def get_publish_lock() -> asyncio.Lock:
-    """Сериализация publish режимов/сценариев и ходов диалога (SQLite)."""
-    return _publish_lock
+__all__ = [
+    "get_process_container",
+    "shutdown_process_container",
+    "reset_process_runtime_for_tests",
+    "get_publish_lock",
+]
 
 
 async def get_process_container(settings: Optional[Settings] = None) -> AppContainer:

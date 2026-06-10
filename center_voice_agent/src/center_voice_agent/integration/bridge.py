@@ -9,9 +9,9 @@ ask_once / ask_once_sync — только отладка (создают сес�
     answer = await session.ask("Привет!")
     await session.close()
 
-Пример (sync, для GUI):
-    from center_voice_agent.integration.bridge import ask_once_sync
-    text = ask_once_sync("Привет!", session_id="room-1", child_profile_id="child-1")
+Пример (sync, для голосового GUI — рекомендуется):
+    from center_voice_agent.voice import ask_voice_sync
+    text = ask_voice_sync("Привет!", session_id="room-1", child_profile_id="child-1")
 """
 
 from __future__ import annotations
@@ -201,3 +201,5 @@ __all__ = [
     "ask_once_sync",
     "shutdown_process_container",
 ]
+
+# Голосовой hot path: center_voice_agent.voice.ask_voice_sync

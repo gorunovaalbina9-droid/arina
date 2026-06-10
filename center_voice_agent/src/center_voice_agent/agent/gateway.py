@@ -83,6 +83,10 @@ class AgentGateway:
     def memory_repository(self) -> LongTermMemoryRepository:
         return self._container.memory_repository
 
+    @property
+    def container(self) -> "AppContainer":
+        return self._container
+
     async def aclose(self) -> None:
         await self._container.aclose()
 
